@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { dailyFoodChapter } from "./data/lessons/daily-food";
+import { createLessonSession, submitLessonAnswer } from "./features/lessons/session";
 import { followsTargetPrefix, isExactSpelling } from "./features/spelling/hangul";
 
 const WORDS = dailyFoodChapter.lessons[0].words;
@@ -23,43 +24,40 @@ function speak(text: string) {
 
 export default function Home() {
   const [started, setStarted] = useState(false);
-  const [index, setIndex] = useState(0);
-  const [round, setRound] = useState<"copy" | "listen">("copy");
+  const [session, setSession] = useState(() => createLessonSession(WORDS.map((word) => word.id)));
   const [answer, setAnswer] = useState("");
   const [message, setMessage] = useState("");
   const [showEnglish, setShowEnglish] = useState(true);
   const [nativeKeyboard, setNativeKeyboard] = useState(false);
   const [muted, setMuted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const word = WORDS[index];
+  const wordId = session.queue[session.position];
+  const word = WORDS.find((candidate) => candidate.id === wordId) ?? WORDS[0];
 
   useEffect(() => {
-    if (!started || muted) return;
+    if (!started || muted || session.phase === "results") return;
     const timer = window.setTimeout(() => speak(word.korean), 280);
     return () => window.clearTimeout(timer);
-  }, [started, word.korean, round, muted]);
+  }, [started, word.korean, session.phase, muted]);
 
-  function nextWord() {
+  function startLesson() {
+    setSession(createLessonSession(WORDS.map((item) => item.id)));
     setAnswer("");
     setMessage("");
-    if (index < WORDS.length - 1) {
-      setIndex(index + 1);
-    } else if (round === "copy") {
-      setIndex(0);
-      setRound("listen");
-      setMessage("现在隐藏韩文，进入听音拼写");
-    } else {
-      setIndex(0);
-      setRound("copy");
-      setStarted(false);
-    }
+    setStarted(true);
+    window.setTimeout(() => inputRef.current?.focus(), 100);
   }
 
   function submit() {
     if (isExactSpelling(answer, word.korean)) {
       setMessage("정답이에요! 拼写正确");
-      window.setTimeout(nextWord, 650);
+      window.setTimeout(() => {
+        setSession((current) => submitLessonAnswer(current, word.id, true));
+        setAnswer("");
+        setMessage("");
+      }, 650);
     } else {
+      setSession((current) => submitLessonAnswer(current, word.id, false));
       setMessage("再听一次，修改红色的位置");
       if (!muted) speak(word.korean);
     }
@@ -102,25 +100,55 @@ export default function Home() {
             <div className="stage-row">
               {[1,2,3,4,5].map((n) => <div key={n} className={`stage ${n === 1 ? "active" : ""}`}><span>{n === 1 ? "▶" : n}</span><small>{n === 1 ? "开始" : "未解锁"}</small></div>)}
             </div>
-            <button className="primary" onClick={() => { setStarted(true); setTimeout(() => inputRef.current?.focus(), 100); }}>开始本关 <span>→</span></button>
+            <button className="primary" onClick={startLesson}>开始本关 <span>→</span></button>
           </div>
         </section>
       </main>
     );
   }
 
+  if (session.phase === "results") {
+    const accuracy = Math.round((session.firstListenCorrect / WORDS.length) * 100);
+    return (
+      <main className="results-page">
+        <section className="results-card">
+          <div className="result-mark">✓</div>
+          <div className="eyebrow">LESSON COMPLETE</div>
+          <h1>本关完成！</h1>
+          <p>커피숍과 음료 · 咖啡店与饮品</p>
+          <div className="result-stats">
+            <div><strong>{WORDS.length}</strong><span>学习词汇</span></div>
+            <div><strong>{accuracy}%</strong><span>首次听写正确率</span></div>
+            <div><strong>{session.mistakeIds.length}</strong><span>重练词汇</span></div>
+          </div>
+          {session.mistakeIds.length > 0 && (
+            <div className="mistake-list">
+              <span>本关已纠正</span>
+              <div>{session.mistakeIds.map((id) => <b key={id}>{WORDS.find((item) => item.id === id)?.korean}</b>)}</div>
+            </div>
+          )}
+          <button className="primary" onClick={startLesson}>再练一次 <span>↻</span></button>
+          <button className="result-link" onClick={() => setStarted(false)}>返回关卡地图</button>
+        </section>
+      </main>
+    );
+  }
+
+  const isCopyPhase = session.phase === "copy";
   const displayLength = Math.max(word.korean.length, answer.length);
-  const progress = ((round === "copy" ? index : WORDS.length + index) / (WORDS.length * 2)) * 100;
+  const progress = ((session.position + 1) / session.queue.length) * 100;
+  const phaseLabel = session.phase === "copy" ? "看词拼写" : session.phase === "listen" ? "听音拼写" : "错词重练";
+  const phaseNumber = session.phase === "copy" ? "01" : session.phase === "listen" ? "02" : "03";
 
   return (
     <main className="practice-page">
       <header className="practice-header">
         <button className="icon-button" onClick={() => setStarted(false)} aria-label="退出练习">×</button>
         <div className="progress-track"><span style={{ width: `${progress}%` }} /></div>
-        <div className="counter"><b>{round === "copy" ? index + 1 : WORDS.length + index + 1}</b> / {WORDS.length * 2}</div>
+        <div className="counter"><b>{session.position + 1}</b> / {session.queue.length}</div>
       </header>
 
-      <div className="mode-pill"><span>{round === "copy" ? "01" : "02"}</span>{round === "copy" ? "看词拼写" : "听音拼写"}</div>
+      <div className="mode-pill"><span>{phaseNumber}</span>{phaseLabel}</div>
 
       <section className="word-stage">
         <div className="emoji-card">{word.emoji}</div>
@@ -135,9 +163,9 @@ export default function Home() {
             const className = typed
               ? (followsTargetPrefix(answer.slice(0, i + 1), word.korean) ? "correct" : "wrong")
               : "pending";
-            return <span className={className} key={i}>{typed || (round === "copy" ? expected : "＿")}</span>;
+            return <span className={className} key={i}>{typed || (isCopyPhase ? expected : "＿")}</span>;
           })}
-          {!answer && round === "listen" && <span className="caret" />}
+          {!answer && !isCopyPhase && <span className="caret" />}
         </div>
 
         <input
@@ -153,7 +181,7 @@ export default function Home() {
         />
 
         <div className="translation"><strong>{word.chinese}</strong>{showEnglish && <span>{word.english}</span>}</div>
-        <p className={`feedback ${answer && !isExactSpelling(answer, word.korean) ? "error" : ""}`}>{message || (round === "copy" ? "照着上面的韩文输入一遍" : "根据读音写出这个单词")}</p>
+        <p className={`feedback ${answer && !isExactSpelling(answer, word.korean) ? "error" : ""}`}>{message || (isCopyPhase ? "照着上面的韩文输入一遍" : session.phase === "retry" ? "重新写对这个听写错词" : "根据读音写出这个单词")}</p>
       </section>
 
       <section className="keyboard-area">

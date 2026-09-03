@@ -23,6 +23,8 @@
   └── 发音适配器（SpeechSynthesis）
 ```
 
+当前已落地 `app/features/spelling/hangul.ts`、`app/features/lessons/session.ts`、`app/data/lessons/validate.ts` 和课程数据目录；页面组件负责将这些模块编排为交互流程。
+
 ## 建议目录
 
 ```text

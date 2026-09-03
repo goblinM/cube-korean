@@ -11,7 +11,7 @@ Node.js >=22.13.0 → npm install → npm run dev
 → 打开 http://localhost:3000/ → 点击“开始本关”
 ```
 
-最小构建验证为 `npm run build`，完整当前测试为 `npm test`。`tests/rendered-html.test.mjs` 验证真实首页输出，`tests/hangul-spelling.test.mjs` 验证音节拆解、IME前缀和最终答案。学习会话与持久化测试尚未建立，详见 `DEVELOPMENT.md`。
+最小构建验证为 `npm run build`，完整当前测试为 `npm test`。测试覆盖真实首页、课程数据校验、音节拆解、IME前缀、最终答案及学习会话阶段切换；本机持久化测试尚未建立，详见 `DEVELOPMENT.md`。
 
 ## 3. 真实入口
 
@@ -19,6 +19,7 @@ Node.js >=22.13.0 → npm install → npm run dev
 |---|---|---|
 | 页面入口 | `app/page.tsx` | 当前关卡页、练习状态与TTS调用 |
 | 拼写规则 | `app/features/spelling/hangul.ts` | 音节拆解、IME前缀和最终答案判断 |
+| 学习会话 | `app/features/lessons/session.ts` | 看词、听写、错词重练与结果阶段切换 |
 | 课程数据 | `app/data/lessons/` | 课程类型及已审核原型词汇 |
 | 页面样式 | `app/globals.css` | 地图、练习页和响应式布局 |
 | 根布局 | `app/layout.tsx` | 页面语言、字体和元数据 |
@@ -36,12 +37,12 @@ WORDS选择当前词
   ↓
 features/spelling/hangul.ts 判断IME输入
   ↓
-submit 校验整词并由 nextWord 推进
+features/lessons/session.ts 推进阶段并记录错词
   ↓
 speak 调用 SpeechSynthesisUtterance(ko-KR)
 ```
 
-学习会话和UI仍集中在一个组件中；拼写规则及课程数据已经拆出。后续目标见 `ARCHITECTURE.md`。
+UI编排仍集中在一个组件中；拼写规则、学习会话及课程数据已经拆出。后续目标见 `ARCHITECTURE.md`。
 
 ## 5. 常见修改导航
 
