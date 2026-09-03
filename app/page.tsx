@@ -157,12 +157,13 @@ export default function Home() {
         <div className="word-display" aria-label={`当前输入 ${answer}`}>
           {Array.from({ length: displayLength }).map((_, i) => {
             const typed = answer[i];
+            const expected = word.ko[i];
             // Compare prefixes after decomposing syllable blocks so an IME's
             // unfinished ㅋ is correctly accepted as the beginning of 커.
             const className = typed
               ? (followsTargetPrefix(answer.slice(0, i + 1), word.ko) ? "correct" : "wrong")
               : "pending";
-            return <span className={className} key={i}>{typed || (round === "copy" ? target : "＿")}</span>;
+            return <span className={className} key={i}>{typed || (round === "copy" ? expected : "＿")}</span>;
           })}
           {!answer && round === "listen" && <span className="caret" />}
         </div>
