@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Moa · 韩语生活词汇听写",
+  title: "CubeKorean · 韩语生活词汇听写",
   description: "通过看词拼写和听音默写，真正记住生活韩语。",
   icons: {
     icon: "/favicon.svg",

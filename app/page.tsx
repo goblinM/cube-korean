@@ -1,44 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { dailyFoodChapter } from "./data/lessons/daily-food";
+import { followsTargetPrefix, isExactSpelling } from "./features/spelling/hangul";
 
-type Word = { ko: string; zh: string; en: string; emoji: string };
-
-const WORDS: Word[] = [
-  { ko: "커피", zh: "咖啡", en: "coffee", emoji: "☕" },
-  { ko: "맥주", zh: "啤酒", en: "beer", emoji: "🍺" },
-  { ko: "우유", zh: "牛奶", en: "milk", emoji: "🥛" },
-  { ko: "물", zh: "水", en: "water", emoji: "💧" },
-  { ko: "주스", zh: "果汁", en: "juice", emoji: "🧃" },
-];
+const WORDS = dailyFoodChapter.lessons[0].words;
 
 const KEYS = [
   ["ㅂ", "ㅈ", "ㄷ", "ㄱ", "ㅅ", "ㅛ", "ㅕ", "ㅑ", "ㅐ", "ㅔ"],
   ["ㅁ", "ㄴ", "ㅇ", "ㄹ", "ㅎ", "ㅗ", "ㅓ", "ㅏ", "ㅣ"],
   ["ㅋ", "ㅌ", "ㅊ", "ㅍ", "ㅠ", "ㅜ", "ㅡ"],
 ];
-
-const INITIALS = ["ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"];
-const VOWELS = ["ㅏ", "ㅐ", "ㅑ", "ㅒ", "ㅓ", "ㅔ", "ㅕ", "ㅖ", "ㅗ", "ㅘ", "ㅙ", "ㅚ", "ㅛ", "ㅜ", "ㅝ", "ㅞ", "ㅟ", "ㅠ", "ㅡ", "ㅢ", "ㅣ"];
-const FINALS = ["", "ㄱ", "ㄲ", "ㄳ", "ㄴ", "ㄵ", "ㄶ", "ㄷ", "ㄹ", "ㄺ", "ㄻ", "ㄼ", "ㄽ", "ㄾ", "ㄿ", "ㅀ", "ㅁ", "ㅂ", "ㅄ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"];
-
-// Turn completed Hangul syllables back into the same compatibility jamo that
-// appears while a Korean IME is still composing (ㅋ → 커 → 커ㅍ → 커피).
-function decomposeHangul(value: string) {
-  return Array.from(value).flatMap((character) => {
-    const code = character.charCodeAt(0);
-    if (code < 0xac00 || code > 0xd7a3) return [character];
-    const offset = code - 0xac00;
-    const initial = Math.floor(offset / 588);
-    const vowel = Math.floor((offset % 588) / 28);
-    const final = offset % 28;
-    return [INITIALS[initial], VOWELS[vowel], ...(final ? [FINALS[final]] : [])];
-  }).join("");
-}
-
-function followsTargetPrefix(value: string, target: string) {
-  return decomposeHangul(target).startsWith(decomposeHangul(value));
-}
 
 function speak(text: string) {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
@@ -63,9 +35,9 @@ export default function Home() {
 
   useEffect(() => {
     if (!started || muted) return;
-    const timer = window.setTimeout(() => speak(word.ko), 280);
+    const timer = window.setTimeout(() => speak(word.korean), 280);
     return () => window.clearTimeout(timer);
-  }, [started, word.ko, round, muted]);
+  }, [started, word.korean, round, muted]);
 
   function nextWord() {
     setAnswer("");
@@ -84,12 +56,12 @@ export default function Home() {
   }
 
   function submit() {
-    if (answer === word.ko) {
+    if (isExactSpelling(answer, word.korean)) {
       setMessage("정답이에요! 拼写正确");
       window.setTimeout(nextWord, 650);
     } else {
       setMessage("再听一次，修改红色的位置");
-      if (!muted) speak(word.ko);
+      if (!muted) speak(word.korean);
     }
   }
 
@@ -102,7 +74,7 @@ export default function Home() {
     return (
       <main className="map-page">
         <header className="brand-row">
-          <a className="brand" href="#" aria-label="Moa 首页"><span>ㅁ</span> moa</a>
+          <div className="brand" aria-label="CubeKorean 首页"><span>ㅋ</span> CubeKorean</div>
           <div className="header-actions"><span className="streak">🔥 7</span><button className="avatar" aria-label="个人中心">안</button></div>
         </header>
 
@@ -137,7 +109,7 @@ export default function Home() {
     );
   }
 
-  const displayLength = Math.max(word.ko.length, answer.length);
+  const displayLength = Math.max(word.korean.length, answer.length);
   const progress = ((round === "copy" ? index : WORDS.length + index) / (WORDS.length * 2)) * 100;
 
   return (
@@ -150,18 +122,18 @@ export default function Home() {
 
       <div className="mode-pill"><span>{round === "copy" ? "01" : "02"}</span>{round === "copy" ? "看词拼写" : "听音拼写"}</div>
 
-      <section className="word-stage" onClick={() => inputRef.current?.focus()}>
+      <section className="word-stage">
         <div className="emoji-card">{word.emoji}</div>
-        <button className="sound-button" onClick={(event) => { event.stopPropagation(); speak(word.ko); }} aria-label="播放韩语发音">▶<span>听发音</span></button>
+        <button className="sound-button" onClick={(event) => { event.stopPropagation(); speak(word.korean); }} aria-label="播放韩语发音">▶<span>听发音</span></button>
 
         <div className="word-display" aria-label={`当前输入 ${answer}`}>
           {Array.from({ length: displayLength }).map((_, i) => {
             const typed = answer[i];
-            const expected = word.ko[i];
+            const expected = word.korean[i];
             // Compare prefixes after decomposing syllable blocks so an IME's
             // unfinished ㅋ is correctly accepted as the beginning of 커.
             const className = typed
-              ? (followsTargetPrefix(answer.slice(0, i + 1), word.ko) ? "correct" : "wrong")
+              ? (followsTargetPrefix(answer.slice(0, i + 1), word.korean) ? "correct" : "wrong")
               : "pending";
             return <span className={className} key={i}>{typed || (round === "copy" ? expected : "＿")}</span>;
           })}
@@ -180,8 +152,8 @@ export default function Home() {
           aria-label="输入韩语拼写"
         />
 
-        <div className="translation"><strong>{word.zh}</strong>{showEnglish && <span>{word.en}</span>}</div>
-        <p className={`feedback ${answer && answer !== word.ko ? "error" : ""}`}>{message || (round === "copy" ? "照着上面的韩文输入一遍" : "根据读音写出这个单词")}</p>
+        <div className="translation"><strong>{word.chinese}</strong>{showEnglish && <span>{word.english}</span>}</div>
+        <p className={`feedback ${answer && !isExactSpelling(answer, word.korean) ? "error" : ""}`}>{message || (round === "copy" ? "照着上面的韩文输入一遍" : "根据读音写出这个单词")}</p>
       </section>
 
       <section className="keyboard-area">
