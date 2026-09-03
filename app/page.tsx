@@ -18,6 +18,28 @@ const KEYS = [
   ["ㅋ", "ㅌ", "ㅊ", "ㅍ", "ㅠ", "ㅜ", "ㅡ"],
 ];
 
+const INITIALS = ["ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"];
+const VOWELS = ["ㅏ", "ㅐ", "ㅑ", "ㅒ", "ㅓ", "ㅔ", "ㅕ", "ㅖ", "ㅗ", "ㅘ", "ㅙ", "ㅚ", "ㅛ", "ㅜ", "ㅝ", "ㅞ", "ㅟ", "ㅠ", "ㅡ", "ㅢ", "ㅣ"];
+const FINALS = ["", "ㄱ", "ㄲ", "ㄳ", "ㄴ", "ㄵ", "ㄶ", "ㄷ", "ㄹ", "ㄺ", "ㄻ", "ㄼ", "ㄽ", "ㄾ", "ㄿ", "ㅀ", "ㅁ", "ㅂ", "ㅄ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"];
+
+// Turn completed Hangul syllables back into the same compatibility jamo that
+// appears while a Korean IME is still composing (ㅋ → 커 → 커ㅍ → 커피).
+function decomposeHangul(value: string) {
+  return Array.from(value).flatMap((character) => {
+    const code = character.charCodeAt(0);
+    if (code < 0xac00 || code > 0xd7a3) return [character];
+    const offset = code - 0xac00;
+    const initial = Math.floor(offset / 588);
+    const vowel = Math.floor((offset % 588) / 28);
+    const final = offset % 28;
+    return [INITIALS[initial], VOWELS[vowel], ...(final ? [FINALS[final]] : [])];
+  }).join("");
+}
+
+function followsTargetPrefix(value: string, target: string) {
+  return decomposeHangul(target).startsWith(decomposeHangul(value));
+}
+
 function speak(text: string) {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
   window.speechSynthesis.cancel();
@@ -135,8 +157,11 @@ export default function Home() {
         <div className="word-display" aria-label={`当前输入 ${answer}`}>
           {Array.from({ length: displayLength }).map((_, i) => {
             const typed = answer[i];
-            const target = word.ko[i];
-            const className = typed ? (typed === target ? "correct" : "wrong") : "pending";
+            // Compare prefixes after decomposing syllable blocks so an IME's
+            // unfinished ㅋ is correctly accepted as the beginning of 커.
+            const className = typed
+              ? (followsTargetPrefix(answer.slice(0, i + 1), word.ko) ? "correct" : "wrong")
+              : "pending";
             return <span className={className} key={i}>{typed || (round === "copy" ? target : "＿")}</span>;
           })}
           {!answer && round === "listen" && <span className="caret" />}
