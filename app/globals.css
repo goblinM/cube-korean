@@ -2,7 +2,7 @@
 
 :root { --ink:#171914; --muted:#8b8e86; --paper:#f7f5ef; --lime:#c9f73c; --orange:#ff6b35; --red:#e83b37; }
 * { box-sizing:border-box; }
-html, body { margin:0; min-height:100%; background:var(--paper); color:var(--ink); }
+html, body { margin:0; min-height:100%; max-width:100%; overflow-x:hidden; background:var(--paper); color:var(--ink); }
 body { font-family:Arial,"Noto Sans KR","PingFang SC",sans-serif; }
 button, input { font:inherit; }
 button { color:inherit; }
@@ -52,7 +52,7 @@ button { color:inherit; }
 .results-card .primary { margin-bottom:22px; }.result-link { display:block; margin:0 auto; border:0; background:none; color:#777; text-decoration:underline; cursor:pointer; }
 
 @media (max-width:760px) {
-  .map-page { padding:20px 22px 35px; }.hero { grid-template-columns:1fr; gap:5px; padding-top:36px; }.hero-copy { text-align:center; }.eyebrow { font-size:9px; }.hero h1 { font-size:50px; letter-spacing:-4px; margin:18px 0; }.hero-copy>p { font-size:14px; line-height:1.6; }.today-card { display:none; }.cube-wrap { width:220px; height:195px; transform:scale(.82); margin-top:5px; }.level-meta h2 { font-size:25px; }.stage { flex-basis:59px; width:59px; }.stage span { width:39px; height:39px; }.stage-row { margin:18px 0 22px; width:calc(100vw - 22px); padding-left:12px; }.stage-row:before { top:19px; width:550px; }
+  .map-page { padding:20px 22px 35px; }.hero { min-width:0; grid-template-columns:minmax(0,1fr); gap:5px; padding-top:36px; }.hero-copy { min-width:0; text-align:center; }.eyebrow { font-size:9px; }.hero h1 { font-size:50px; letter-spacing:-4px; margin:18px 0; }.hero-copy>p { font-size:14px; line-height:1.6; }.today-card { display:none; }.cube-wrap { width:220px; height:195px; transform:scale(.82); margin-top:5px; }.level-meta h2 { font-size:25px; }.stage { flex-basis:59px; width:59px; }.stage span { width:39px; height:39px; }.stage-row { margin:18px 0 22px; width:calc(100vw - 22px); padding-left:12px; }.stage-row:before { top:19px; width:550px; }
   .practice-header { height:62px; }.mode-pill { margin-top:4px; }.word-stage { min-height:350px; padding:15px; }.word-display { font-size:50px; }.emoji-card { width:67px; height:67px; font-size:34px; }.keyboard-area { padding:10px 3px 14px; }.key-row { gap:4px; }.key-row button { flex:1; max-width:43px; height:48px; border-radius:9px; font-size:18px; }.key-row .delete { margin-left:3px; }.bottom-actions { padding:0 8px; }.native { flex:1; padding:0 8px; }.check { flex:1.4; min-width:0; }.utility-row { margin-bottom:10px; }
   .results-card { padding:32px 18px; }.results-card h1 { font-size:34px; }.result-stats strong { font-size:20px; }
 }
