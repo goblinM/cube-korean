@@ -3,9 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import { dailyFoodChapter } from "./data/lessons/daily-food";
 import { createLessonSession, submitLessonAnswer } from "./features/lessons/session";
+import {
+  createEmptyProgress,
+  isLessonUnlocked,
+  readProgress,
+  recordLessonResult,
+  writeProgress,
+} from "./features/progress/local-progress";
 import { followsTargetPrefix, isExactSpelling } from "./features/spelling/hangul";
 
-const WORDS = dailyFoodChapter.lessons[0].words;
+const LESSONS = dailyFoodChapter.lessons;
+const LESSON_IDS = ["☕", "🍳", "🍚", "🍎", "🥬", "🍰", "🍽️", "🌶️", "🍲", "🥩"];
 
 const KEYS = [
   ["ㅂ", "ㅈ", "ㄷ", "ㄱ", "ㅅ", "ㅛ", "ㅕ", "ㅑ", "ㅐ", "ㅔ"],
@@ -24,15 +32,25 @@ function speak(text: string) {
 
 export default function Home() {
   const [started, setStarted] = useState(false);
-  const [session, setSession] = useState(() => createLessonSession(WORDS.map((word) => word.id)));
+  const [selectedLessonId, setSelectedLessonId] = useState(LESSONS[0].id);
+  const [progress, setProgress] = useState(createEmptyProgress);
+  const [session, setSession] = useState(() => createLessonSession(LESSONS[0].words.map((word) => word.id)));
+  const [resultSaved, setResultSaved] = useState(false);
   const [answer, setAnswer] = useState("");
   const [message, setMessage] = useState("");
   const [showEnglish, setShowEnglish] = useState(true);
-  const [nativeKeyboard, setNativeKeyboard] = useState(false);
+  const [nativeKeyboard, setNativeKeyboard] = useState(true);
   const [muted, setMuted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const lesson = LESSONS.find((candidate) => candidate.id === selectedLessonId) ?? LESSONS[0];
+  const words = lesson.words;
   const wordId = session.queue[session.position];
-  const word = WORDS.find((candidate) => candidate.id === wordId) ?? WORDS[0];
+  const word = words.find((candidate) => candidate.id === wordId) ?? words[0];
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setProgress(readProgress(window.localStorage)), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (!started || muted || session.phase === "results") return;
@@ -40,10 +58,27 @@ export default function Home() {
     return () => window.clearTimeout(timer);
   }, [started, word.korean, session.phase, muted]);
 
-  function startLesson() {
-    setSession(createLessonSession(WORDS.map((item) => item.id)));
+  useEffect(() => {
+    if (session.phase !== "results" || resultSaved) return;
+    const timer = window.setTimeout(() => {
+      const accuracy = Math.round((session.firstListenCorrect / words.length) * 100);
+      setProgress((current) => {
+        const updated = recordLessonResult(current, lesson.id, accuracy, session.mistakeIds);
+        writeProgress(window.localStorage, updated);
+        return updated;
+      });
+      setResultSaved(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [lesson.id, resultSaved, session, words.length]);
+
+  function startLesson(lessonId = selectedLessonId) {
+    const targetLesson = LESSONS.find((candidate) => candidate.id === lessonId) ?? LESSONS[0];
+    setSelectedLessonId(targetLesson.id);
+    setSession(createLessonSession(targetLesson.words.map((item) => item.id)));
     setAnswer("");
     setMessage("");
+    setResultSaved(false);
     setStarted(true);
     window.setTimeout(() => inputRef.current?.focus(), 100);
   }
@@ -82,8 +117,8 @@ export default function Home() {
             <h1>听见生活，<br />写出韩语。</h1>
             <p>不从字母表重新开始。直接进入真实生活词汇，用看词拼写和听音默写，把每一个韩语单词真正记下来。</p>
             <div className="today-card">
-              <div><span>今日目标</span><strong>5 个生活词汇</strong></div>
-              <div className="mini-progress"><i /></div>
+              <div><span>课程进度</span><strong>{Object.keys(progress.lessons).length} / {LESSONS.length} 关</strong></div>
+              <div className="mini-progress"><i style={{ width: `${(Object.keys(progress.lessons).length / LESSONS.length) * 100}%` }} /></div>
             </div>
           </div>
 
@@ -96,11 +131,27 @@ export default function Home() {
               </div>
               <div className="cube-shadow" />
             </div>
-            <div className="level-meta"><span>生活词汇 · 第一站</span><h2>咖啡店与饮品</h2><p>카페와 음료</p></div>
+            <div className="level-meta"><span>{dailyFoodChapter.titleChinese} · 第 {LESSONS.findIndex((item) => item.id === lesson.id) + 1} 关</span><h2>{lesson.titleChinese}</h2><p>{lesson.titleKorean} · 20词</p></div>
             <div className="stage-row">
-              {[1,2,3,4,5].map((n) => <div key={n} className={`stage ${n === 1 ? "active" : ""}`}><span>{n === 1 ? "▶" : n}</span><small>{n === 1 ? "开始" : "未解锁"}</small></div>)}
+              {LESSONS.map((item, index) => {
+                const unlocked = isLessonUnlocked(LESSONS.map((entry) => entry.id), item.id, progress);
+                const completed = progress.lessons[item.id];
+                const selected = item.id === lesson.id;
+                return (
+                  <button
+                    className={`stage ${selected ? "active" : ""} ${completed ? "completed" : ""}`}
+                    disabled={!unlocked}
+                    key={item.id}
+                    onClick={() => setSelectedLessonId(item.id)}
+                    aria-label={`${index + 1}. ${item.titleChinese}${unlocked ? "" : "，未解锁"}`}
+                  >
+                    <span>{completed ? "✓" : unlocked ? LESSON_IDS[index] : "🔒"}</span>
+                    <small>{completed ? `${completed.bestAccuracy}%` : unlocked ? item.titleChinese : "未解锁"}</small>
+                  </button>
+                );
+              })}
             </div>
-            <button className="primary" onClick={startLesson}>开始本关 <span>→</span></button>
+            <button className="primary" onClick={() => startLesson()}>{progress.lessons[lesson.id] ? "再次练习" : "开始本关"} <span>→</span></button>
           </div>
         </section>
       </main>
@@ -108,26 +159,28 @@ export default function Home() {
   }
 
   if (session.phase === "results") {
-    const accuracy = Math.round((session.firstListenCorrect / WORDS.length) * 100);
+    const accuracy = Math.round((session.firstListenCorrect / words.length) * 100);
+    const lessonIndex = LESSONS.findIndex((item) => item.id === lesson.id);
+    const nextLesson = LESSONS[lessonIndex + 1];
     return (
       <main className="results-page">
         <section className="results-card">
           <div className="result-mark">✓</div>
           <div className="eyebrow">LESSON COMPLETE</div>
           <h1>本关完成！</h1>
-          <p>커피숍과 음료 · 咖啡店与饮品</p>
+          <p>{lesson.titleKorean} · {lesson.titleChinese}</p>
           <div className="result-stats">
-            <div><strong>{WORDS.length}</strong><span>学习词汇</span></div>
+            <div><strong>{words.length}</strong><span>学习词汇</span></div>
             <div><strong>{accuracy}%</strong><span>首次听写正确率</span></div>
             <div><strong>{session.mistakeIds.length}</strong><span>重练词汇</span></div>
           </div>
           {session.mistakeIds.length > 0 && (
             <div className="mistake-list">
               <span>本关已纠正</span>
-              <div>{session.mistakeIds.map((id) => <b key={id}>{WORDS.find((item) => item.id === id)?.korean}</b>)}</div>
+              <div>{session.mistakeIds.map((id) => <b key={id}>{words.find((item) => item.id === id)?.korean}</b>)}</div>
             </div>
           )}
-          <button className="primary" onClick={startLesson}>再练一次 <span>↻</span></button>
+          <button className="primary" onClick={() => nextLesson ? startLesson(nextLesson.id) : startLesson()}>{nextLesson ? "进入下一关" : "再练一次"} <span>{nextLesson ? "→" : "↻"}</span></button>
           <button className="result-link" onClick={() => setStarted(false)}>返回关卡地图</button>
         </section>
       </main>
@@ -136,7 +189,7 @@ export default function Home() {
 
   const isCopyPhase = session.phase === "copy";
   const displayLength = Math.max(word.korean.length, answer.length);
-  const progress = ((session.position + 1) / session.queue.length) * 100;
+  const lessonProgressPercent = ((session.position + 1) / session.queue.length) * 100;
   const phaseLabel = session.phase === "copy" ? "看词拼写" : session.phase === "listen" ? "听音拼写" : "错词重练";
   const phaseNumber = session.phase === "copy" ? "01" : session.phase === "listen" ? "02" : "03";
 
@@ -144,7 +197,7 @@ export default function Home() {
     <main className="practice-page">
       <header className="practice-header">
         <button className="icon-button" onClick={() => setStarted(false)} aria-label="退出练习">×</button>
-        <div className="progress-track"><span style={{ width: `${progress}%` }} /></div>
+        <div className="progress-track"><span style={{ width: `${lessonProgressPercent}%` }} /></div>
         <div className="counter"><b>{session.position + 1}</b> / {session.queue.length}</div>
       </header>
 

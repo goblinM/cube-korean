@@ -13,6 +13,7 @@ export function validateChapter(
   const issues: string[] = [];
   const lessonIds = new Set<string>();
   const wordIds = new Set<string>();
+  const koreanWords = new Set<string>();
 
   if (!chapter.id || !chapter.titleChinese || !chapter.titleKorean) {
     issues.push("大关卡缺少标识、中文标题或韩文标题");
@@ -30,17 +31,25 @@ export function validateChapter(
     if (options.wordsPerLesson && lesson.words.length !== options.wordsPerLesson) {
       issues.push(`${lesson.id} 应包含 ${options.wordsPerLesson} 个词，当前为 ${lesson.words.length} 个`);
     }
-    for (const word of lesson.words) validateWord(word, wordIds, issues);
+    for (const word of lesson.words) validateWord(word, wordIds, koreanWords, issues);
   }
 
   return issues;
 }
 
 /** 检查单词必填字段及全章唯一标识，防止缺失释义或重复记录进入练习流程。 */
-function validateWord(word: LessonWord, wordIds: Set<string>, issues: string[]): void {
+function validateWord(
+  word: LessonWord,
+  wordIds: Set<string>,
+  koreanWords: Set<string>,
+  issues: string[],
+): void {
   if (wordIds.has(word.id)) issues.push(`单词标识重复：${word.id}`);
   wordIds.add(word.id);
+  if (koreanWords.has(word.korean)) issues.push(`韩文词条重复：${word.korean}`);
+  koreanWords.add(word.korean);
   if (!word.id || !word.korean || !word.chinese || !word.english || !word.emoji) {
     issues.push(`单词字段不完整：${word.id || "unknown"}`);
   }
+  if (/\s/.test(word.korean)) issues.push(`韩文词条包含当前输入模式不支持的空格：${word.korean}`);
 }

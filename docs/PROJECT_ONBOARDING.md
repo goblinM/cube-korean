@@ -2,7 +2,7 @@
 
 ## 1. 一分钟概览
 
-CubeKorean 是面向具备少量基础学习者的韩语生活词汇拼写网站。当前是React/Vinext单页原型，主要目标是交付“日常饮食”10关×20词的MVP。核心价值是看词拼写、听音拼写、IME友好的即时纠错和错词重练。MVP不依赖后端，进度计划保存在本机。
+CubeKorean 是面向具备少量基础学习者的韩语生活词汇拼写网站。当前已实现“日常饮食”10关×20词、顺序解锁和本机进度。核心价值是看词拼写、听音拼写、IME友好的即时纠错和错词重练。MVP不依赖后端。
 
 ## 2. 第一次运行与验证
 
@@ -11,7 +11,7 @@ Node.js >=22.13.0 → npm install → npm run dev
 → 打开 http://localhost:3000/ → 点击“开始本关”
 ```
 
-最小构建验证为 `npm run build`，完整当前测试为 `npm test`。测试覆盖真实首页、课程数据校验、音节拆解、IME前缀、最终答案及学习会话阶段切换；本机持久化测试尚未建立，详见 `DEVELOPMENT.md`。
+最小构建验证为 `npm run build`，完整当前测试为 `npm test`。测试覆盖真实首页、10×20课程结构、音节拆解、IME前缀、最终答案、学习会话阶段切换、顺序解锁及本机持久化。
 
 ## 3. 真实入口
 
@@ -20,6 +20,7 @@ Node.js >=22.13.0 → npm install → npm run dev
 | 页面入口 | `app/page.tsx` | 当前关卡页、练习状态与TTS调用 |
 | 拼写规则 | `app/features/spelling/hangul.ts` | 音节拆解、IME前缀和最终答案判断 |
 | 学习会话 | `app/features/lessons/session.ts` | 看词、听写、错词重练与结果阶段切换 |
+| 本机进度 | `app/features/progress/local-progress.ts` | 读取、校验和更新关卡完成记录 |
 | 课程数据 | `app/data/lessons/` | 课程类型及已审核原型词汇 |
 | 页面样式 | `app/globals.css` | 地图、练习页和响应式布局 |
 | 根布局 | `app/layout.tsx` | 页面语言、字体和元数据 |
@@ -31,13 +32,15 @@ Node.js >=22.13.0 → npm install → npm run dev
 ```text
 app/page.tsx Home
   ↓ 点击“开始本关”设置 started
-WORDS选择当前词
+当前小关卡选择20个词
   ↓
 看词 copy / 听音 listen 两轮状态
   ↓
 features/spelling/hangul.ts 判断IME输入
   ↓
 features/lessons/session.ts 推进阶段并记录错词
+  ↓
+features/progress/local-progress.ts 保存结果并解锁下一关
   ↓
 speak 调用 SpeechSynthesisUtterance(ko-KR)
 ```
@@ -49,7 +52,7 @@ UI编排仍集中在一个组件中；拼写规则、学习会话及课程数据
 | 修改目标 | 首先阅读 | 相关验证 | 文档影响 |
 |---|---|---|---|
 | 拼写规则 | `app/features/spelling/hangul.ts` | `tests/hangul-spelling.test.mjs` | `DEBUG.md`、必要时 `DECISIONS.md` |
-| 课程词汇 | `app/data/lessons/` | 待增加课程完整性和重复词检查 | `PRD.md`、`MVP.md` |
+| 课程词汇 | `app/data/lessons/` | `tests/course-validation.test.mjs` | `PRD.md`、`MVP.md` |
 | 练习流程 | `Home`、`submit`、`nextWord` | 两轮、错词、结束状态 | `ARCHITECTURE.md` |
 | 样式与移动端 | `app/globals.css` | 手机与桌面人工回归 | 必要时 `CHANGELOG.md` |
 | 部署 | `.openai/hosting.json`、`vite.config.ts` | `npm run build` | `DEVELOPMENT.md` |
@@ -82,4 +85,4 @@ UI编排仍集中在一个组件中；拼写规则、学习会话及课程数据
 - 架构目标：`ARCHITECTURE.md`
 - 已知问题：`DEBUG.md`
 - 关键取舍：`DECISIONS.md`
-- 推荐首个低风险任务：增加课程数据完整性和重复词校验。
+- 推荐下一任务：完成手机与桌面端主路径人工回归，并记录浏览器差异。

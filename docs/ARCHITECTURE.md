@@ -6,8 +6,8 @@
 - 运行：React 19 + TypeScript + Vinext/Vite；
 - 部署：Cloudflare Worker兼容输出，通过Sites发布；
 - 发音：浏览器Web Speech API；
-- 数据：课程类型与原型词汇位于 `app/data/lessons/`；
-- 持久化：当前未实现，MVP计划使用 `localStorage`；
+- 数据：“日常饮食”10关×20词课程位于 `app/data/lessons/`；
+- 持久化：`app/features/progress/local-progress.ts` 通过版本化 `localStorage` 保存关卡进度；
 - 后端和数据库：MVP不启用，`.openai/hosting.json` 中D1/R2均为空。
 
 ## 目标模块边界
@@ -23,7 +23,7 @@
   └── 发音适配器（SpeechSynthesis）
 ```
 
-当前已落地 `app/features/spelling/hangul.ts`、`app/features/lessons/session.ts`、`app/data/lessons/validate.ts` 和课程数据目录；页面组件负责将这些模块编排为交互流程。
+当前已落地拼写、学习会话、课程校验、本机进度和10×20课程数据模块；页面组件负责将这些模块编排为交互流程。
 
 ## 建议目录
 
