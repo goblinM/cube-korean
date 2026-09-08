@@ -7,7 +7,7 @@
 - 部署：Cloudflare Worker兼容输出，通过Sites发布；
 - 发音：浏览器Web Speech API；
 - 数据：“日常饮食”10关×20词课程位于 `app/data/lessons/`；
-- 持久化：`app/features/progress/local-progress.ts` 通过版本化 `localStorage` 保存关卡进度；
+- 持久化：`app/features/progress/local-progress.ts` 通过版本化 `localStorage` 保存关卡进度、掌握度和下次复习时间；
 - 后端和数据库：MVP不启用，`.openai/hosting.json` 中D1/R2均为空。
 
 ## 目标模块边界
@@ -23,7 +23,7 @@
   └── 发音适配器（SpeechSynthesis）
 ```
 
-当前已落地拼写、学习会话、课程校验、本机进度和10×20课程数据模块；页面组件负责将这些模块编排为交互流程。
+当前已落地拼写判断、页面键盘音节组合、学习会话、课程校验、本机进度、语音适配器和10×20课程数据模块；页面组件负责将这些模块编排为交互流程。
 
 ## 建议目录
 
@@ -34,6 +34,7 @@ app/
 ├── features/lessons/ # 关卡选择和解锁
 ├── features/spelling/# 韩语拆解与拼写判断纯函数
 ├── features/progress/# 学习状态与本机存储
+├── features/speech/  # 韩语TTS能力检测与安全降级
 ├── page.tsx
 └── globals.css
 tests/                # 核心领域和流程测试
@@ -45,7 +46,7 @@ tests/                # 核心领域和流程测试
 
 | 依赖 | 用途 | 本地是否必须 | 不可用表现 |
 |---|---|---|---|
-| Web Speech API | 韩语TTS | 否 | 停止朗读，拼写功能继续工作 |
+| Web Speech API | 韩语TTS | 否 | 显示不可用提示，拼写功能继续工作 |
 | localStorage | MVP进度 | 否 | 无法跨刷新保留进度，应显示可恢复提示 |
 | Cloudflare Sites | 线上发布 | 否 | 不影响本地开发 |
 
@@ -54,4 +55,5 @@ tests/                # 核心领域和流程测试
 - MVP保持单体前端，不提前引入服务端；
 - 拼写判断必须是可独立测试的纯函数；
 - 课程内容与UI解耦；
+- 复习间隔按学习中1天、熟悉3天、连续高正确率掌握7天计算；
 - 只有多设备同步或内容运营需求成立后才评估数据库和后台。

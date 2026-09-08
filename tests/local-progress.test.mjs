@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   createEmptyProgress,
+  isReviewDue,
   isLessonUnlocked,
   PROGRESS_STORAGE_KEY,
   readProgress,
@@ -24,6 +25,19 @@ test("records attempts while retaining the best listening accuracy", () => {
   assert.equal(progress.lessons.cafe.bestAccuracy, 60);
   assert.equal(progress.lessons.cafe.lastAccuracy, 40);
   assert.deepEqual(progress.lessons.cafe.mistakeIds, ["milk"]);
+  assert.equal(progress.lessons.cafe.mastery, "learning");
+  assert.equal(progress.lessons.cafe.nextReviewAt, "2026-09-08T01:00:00.000Z");
+});
+
+test("advances from familiar to mastered with spaced review dates", () => {
+  let progress = recordLessonResult(createEmptyProgress(), "cafe", 100, [], "2026-09-07T00:00:00.000Z");
+  assert.equal(progress.lessons.cafe.mastery, "familiar");
+  assert.equal(progress.lessons.cafe.nextReviewAt, "2026-09-10T00:00:00.000Z");
+  progress = recordLessonResult(progress, "cafe", 100, [], "2026-09-10T00:00:00.000Z");
+  assert.equal(progress.lessons.cafe.mastery, "mastered");
+  assert.equal(progress.lessons.cafe.nextReviewAt, "2026-09-17T00:00:00.000Z");
+  assert.equal(isReviewDue(progress.lessons.cafe, new Date("2026-09-16T23:59:59.000Z")), false);
+  assert.equal(isReviewDue(progress.lessons.cafe, new Date("2026-09-17T00:00:00.000Z")), true);
 });
 
 test("unlocks only the first lesson and the lesson after a completion", () => {

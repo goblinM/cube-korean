@@ -5,11 +5,14 @@ import { dailyFoodChapter } from "./data/lessons/daily-food";
 import { createLessonSession, submitLessonAnswer } from "./features/lessons/session";
 import {
   createEmptyProgress,
+  isReviewDue,
   isLessonUnlocked,
   readProgress,
   recordLessonResult,
   writeProgress,
 } from "./features/progress/local-progress";
+import { speakKorean } from "./features/speech/korean-speech";
+import { composeHangul } from "./features/spelling/compose-hangul";
 import { followsTargetPrefix, isExactSpelling } from "./features/spelling/hangul";
 
 const LESSONS = dailyFoodChapter.lessons;
@@ -21,15 +24,6 @@ const KEYS = [
   ["ㅋ", "ㅌ", "ㅊ", "ㅍ", "ㅠ", "ㅜ", "ㅡ"],
 ];
 
-function speak(text: string) {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = "ko-KR";
-  utterance.rate = 0.78;
-  window.speechSynthesis.speak(utterance);
-}
-
 export default function Home() {
   const [started, setStarted] = useState(false);
   const [selectedLessonId, setSelectedLessonId] = useState(LESSONS[0].id);
@@ -37,15 +31,19 @@ export default function Home() {
   const [session, setSession] = useState(() => createLessonSession(LESSONS[0].words.map((word) => word.id)));
   const [resultSaved, setResultSaved] = useState(false);
   const [answer, setAnswer] = useState("");
+  const [keyboardJamo, setKeyboardJamo] = useState("");
   const [message, setMessage] = useState("");
   const [showEnglish, setShowEnglish] = useState(true);
   const [nativeKeyboard, setNativeKeyboard] = useState(true);
   const [muted, setMuted] = useState(false);
+  const [speechUnavailable, setSpeechUnavailable] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const lesson = LESSONS.find((candidate) => candidate.id === selectedLessonId) ?? LESSONS[0];
   const words = lesson.words;
   const wordId = session.queue[session.position];
   const word = words.find((candidate) => candidate.id === wordId) ?? words[0];
+  const completedLessons = Object.values(progress.lessons);
+  const dueReviewCount = completedLessons.filter((item) => isReviewDue(item)).length;
 
   useEffect(() => {
     const timer = window.setTimeout(() => setProgress(readProgress(window.localStorage)), 0);
@@ -54,7 +52,9 @@ export default function Home() {
 
   useEffect(() => {
     if (!started || muted || session.phase === "results") return;
-    const timer = window.setTimeout(() => speak(word.korean), 280);
+    const timer = window.setTimeout(() => {
+      if (!speakKorean(word.korean)) setSpeechUnavailable(true);
+    }, 280);
     return () => window.clearTimeout(timer);
   }, [started, word.korean, session.phase, muted]);
 
@@ -77,6 +77,7 @@ export default function Home() {
     setSelectedLessonId(targetLesson.id);
     setSession(createLessonSession(targetLesson.words.map((item) => item.id)));
     setAnswer("");
+    setKeyboardJamo("");
     setMessage("");
     setResultSaved(false);
     setStarted(true);
@@ -89,18 +90,33 @@ export default function Home() {
       window.setTimeout(() => {
         setSession((current) => submitLessonAnswer(current, word.id, true));
         setAnswer("");
+        setKeyboardJamo("");
         setMessage("");
       }, 650);
     } else {
       setSession((current) => submitLessonAnswer(current, word.id, false));
       setMessage("再听一次，修改红色的位置");
-      if (!muted) speak(word.korean);
+      if (!muted && !speakKorean(word.korean)) setSpeechUnavailable(true);
     }
   }
 
   function typeKey(key: string) {
-    setAnswer((current) => current + key);
+    setKeyboardJamo((current) => {
+      const next = current + key;
+      setAnswer(composeHangul(next));
+      return next;
+    });
     inputRef.current?.focus();
+  }
+
+  function deleteKey() {
+    if (keyboardJamo) {
+      const next = keyboardJamo.slice(0, -1);
+      setKeyboardJamo(next);
+      setAnswer(composeHangul(next));
+    } else {
+      setAnswer((current) => current.slice(0, -1));
+    }
   }
 
   if (!started) {
@@ -117,7 +133,7 @@ export default function Home() {
             <h1>听见生活，<br />写出韩语。</h1>
             <p>不从字母表重新开始。直接进入真实生活词汇，用看词拼写和听音默写，把每一个韩语单词真正记下来。</p>
             <div className="today-card">
-              <div><span>课程进度</span><strong>{Object.keys(progress.lessons).length} / {LESSONS.length} 关</strong></div>
+              <div><span>{dueReviewCount ? `今日待复习 ${dueReviewCount} 关` : "课程进度"}</span><strong>{completedLessons.length} / {LESSONS.length} 关</strong></div>
               <div className="mini-progress"><i style={{ width: `${(Object.keys(progress.lessons).length / LESSONS.length) * 100}%` }} /></div>
             </div>
           </div>
@@ -146,7 +162,7 @@ export default function Home() {
                     aria-label={`${index + 1}. ${item.titleChinese}${unlocked ? "" : "，未解锁"}`}
                   >
                     <span>{completed ? "✓" : unlocked ? LESSON_IDS[index] : "🔒"}</span>
-                    <small>{completed ? `${completed.bestAccuracy}%` : unlocked ? item.titleChinese : "未解锁"}</small>
+                    <small>{completed ? (isReviewDue(completed) ? "待复习" : completed.mastery === "mastered" ? "已掌握" : `${completed.bestAccuracy}%`) : unlocked ? item.titleChinese : "未解锁"}</small>
                   </button>
                 );
               })}
@@ -197,7 +213,7 @@ export default function Home() {
     <main className="practice-page">
       <header className="practice-header">
         <button className="icon-button" onClick={() => setStarted(false)} aria-label="退出练习">×</button>
-        <div className="progress-track"><span style={{ width: `${lessonProgressPercent}%` }} /></div>
+        <div className="progress-track" role="progressbar" aria-label="本轮学习进度" aria-valuemin={0} aria-valuemax={session.queue.length} aria-valuenow={session.position + 1}><span style={{ width: `${lessonProgressPercent}%` }} /></div>
         <div className="counter"><b>{session.position + 1}</b> / {session.queue.length}</div>
       </header>
 
@@ -205,9 +221,18 @@ export default function Home() {
 
       <section className="word-stage">
         <div className="emoji-card">{word.emoji}</div>
-        <button className="sound-button" onClick={(event) => { event.stopPropagation(); speak(word.korean); }} aria-label="播放韩语发音">▶<span>听发音</span></button>
+        <button
+          className="sound-button"
+          disabled={speechUnavailable}
+          onClick={(event) => {
+            event.stopPropagation();
+            if (!speakKorean(word.korean)) setSpeechUnavailable(true);
+          }}
+          aria-label={speechUnavailable ? "韩语发音不可用" : "播放韩语发音"}
+        >▶<span>{speechUnavailable ? "发音不可用" : "听发音"}</span></button>
+        {speechUnavailable && <p className="speech-notice" role="status">当前浏览器无法朗读韩语，仍可继续看词拼写和听写练习。</p>}
 
-        <div className="word-display" aria-label={`当前输入 ${answer}`}>
+        <div className="word-display" lang="ko" aria-label={`当前输入 ${answer}`}>
           {Array.from({ length: displayLength }).map((_, i) => {
             const typed = answer[i];
             const expected = word.korean[i];
@@ -228,30 +253,37 @@ export default function Home() {
           lang="ko"
           autoCapitalize="none"
           autoComplete="off"
-          onChange={(event) => setAnswer(event.target.value.replace(/\s/g, ""))}
+          onChange={(event) => {
+            setKeyboardJamo("");
+            setAnswer(event.target.value.replace(/\s/g, ""));
+          }}
           onKeyDown={(event) => { if (event.key === "Enter") submit(); }}
           aria-label="输入韩语拼写"
         />
 
         <div className="translation"><strong>{word.chinese}</strong>{showEnglish && <span>{word.english}</span>}</div>
-        <p className={`feedback ${answer && !isExactSpelling(answer, word.korean) ? "error" : ""}`}>{message || (isCopyPhase ? "照着上面的韩文输入一遍" : session.phase === "retry" ? "重新写对这个听写错词" : "根据读音写出这个单词")}</p>
+        <p aria-live="polite" className={`feedback ${answer && !isExactSpelling(answer, word.korean) ? "error" : ""}`}>{message || (isCopyPhase ? "照着上面的韩文输入一遍" : session.phase === "retry" ? "重新写对这个听写错词" : "根据读音写出这个单词")}</p>
       </section>
 
       <section className="keyboard-area">
         <div className="utility-row">
           <button onClick={() => setMuted(!muted)}>{muted ? "🔇" : "🔊"} 自动发音</button>
           <button onClick={() => setShowEnglish(!showEnglish)}>EN {showEnglish ? "开启" : "关闭"}</button>
-          <button onClick={() => { setAnswer(""); setMessage(""); }}>↻ 重来</button>
+          <button onClick={() => { setAnswer(""); setKeyboardJamo(""); setMessage(""); }}>↻ 重来</button>
         </div>
 
         {!nativeKeyboard && <div className="keyboard">
           {KEYS.map((row, rowIndex) => <div className="key-row" key={rowIndex}>
             {row.map((key) => <button key={key} onClick={() => typeKey(key)}>{key}</button>)}
-            {rowIndex === 2 && <button className="delete" onClick={() => setAnswer(answer.slice(0, -1))}>⌫</button>}
+            {rowIndex === 2 && <button className="delete" onClick={deleteKey} aria-label="删除一个韩文字母">⌫</button>}
           </div>)}
         </div>}
         <div className="bottom-actions">
-          <button className="native" onClick={() => { setNativeKeyboard(!nativeKeyboard); setTimeout(() => inputRef.current?.focus(), 50); }}>{nativeKeyboard ? "显示页面键盘" : "使用系统韩语键盘"}</button>
+          <button className="native" onClick={() => {
+            if (nativeKeyboard) setKeyboardJamo("");
+            setNativeKeyboard(!nativeKeyboard);
+            setTimeout(() => inputRef.current?.focus(), 50);
+          }}>{nativeKeyboard ? "显示页面键盘" : "使用系统韩语键盘"}</button>
           <button className="check" disabled={!answer} onClick={submit}>检查答案 <span>↵</span></button>
         </div>
       </section>

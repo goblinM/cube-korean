@@ -6,6 +6,8 @@ export type LessonProgress = {
   lastAccuracy: number;
   mistakeIds: string[];
   completedAt: string;
+  mastery?: "learning" | "familiar" | "mastered";
+  nextReviewAt?: string;
 };
 
 export type CourseProgress = {
@@ -45,6 +47,11 @@ export function recordLessonResult(
   completedAt = new Date().toISOString(),
 ): CourseProgress {
   const previous = progress.lessons[lessonId];
+  const mastery = accuracy >= 95 && (previous?.bestAccuracy ?? 0) >= 95
+    ? "mastered"
+    : accuracy >= 80 ? "familiar" : "learning";
+  const reviewDays = mastery === "mastered" ? 7 : mastery === "familiar" ? 3 : 1;
+  const nextReviewAt = new Date(new Date(completedAt).getTime() + reviewDays * 86_400_000).toISOString();
   return {
     version: 1,
     lessons: {
@@ -55,9 +62,16 @@ export function recordLessonResult(
         lastAccuracy: accuracy,
         mistakeIds: [...mistakeIds],
         completedAt,
+        mastery,
+        nextReviewAt,
       },
     },
   };
+}
+
+/** 判断已学关卡是否到达下一次复习时间；旧进度没有计划时视为待复习。 */
+export function isReviewDue(progress: LessonProgress, now = new Date()): boolean {
+  return !progress.nextReviewAt || new Date(progress.nextReviewAt).getTime() <= now.getTime();
 }
 
 /** 将完整版本化进度写入指定浏览器存储，避免页面组件散落序列化细节。 */

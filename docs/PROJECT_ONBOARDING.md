@@ -19,8 +19,10 @@ Node.js >=22.13.0 → npm install → npm run dev
 |---|---|---|
 | 页面入口 | `app/page.tsx` | 当前关卡页、练习状态与TTS调用 |
 | 拼写规则 | `app/features/spelling/hangul.ts` | 音节拆解、IME前缀和最终答案判断 |
+| 页面键盘 | `app/features/spelling/compose-hangul.ts` | 将字母按韩语输入规则组合为音节 |
 | 学习会话 | `app/features/lessons/session.ts` | 看词、听写、错词重练与结果阶段切换 |
-| 本机进度 | `app/features/progress/local-progress.ts` | 读取、校验和更新关卡完成记录 |
+| 本机进度 | `app/features/progress/local-progress.ts` | 读取、校验和更新完成记录、掌握度及复习日期 |
+| 发音适配 | `app/features/speech/korean-speech.ts` | 韩语TTS调用和无语音环境降级 |
 | 课程数据 | `app/data/lessons/` | 课程类型及已审核原型词汇 |
 | 页面样式 | `app/globals.css` | 地图、练习页和响应式布局 |
 | 根布局 | `app/layout.tsx` | 页面语言、字体和元数据 |
@@ -85,4 +87,4 @@ UI编排仍集中在一个组件中；拼写规则、学习会话及课程数据
 - 架构目标：`ARCHITECTURE.md`
 - 已知问题：`DEBUG.md`
 - 关键取舍：`DECISIONS.md`
-- 推荐下一任务：进入P2，优先补充TTS不可用提示和页面键盘音节组合能力。
+- 推荐下一任务：根据真实学习反馈微调复习间隔与200词内容。

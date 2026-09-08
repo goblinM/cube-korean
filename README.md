@@ -5,7 +5,7 @@ CubeKorean 是面向具备少量韩语基础学习者的生活词汇拼写网站
 - 项目类型：Web 前端应用
 - 技术栈：React 19、TypeScript、Vinext、Vite、Cloudflare Workers/Sites、Web Speech API
 - 创建日期：2026-09-03
-- 当前状态：P1 已完成；“日常饮食”10关×20词、顺序解锁、本机进度及桌面/手机主路径回归均已完成
+- 当前状态：P2 已完成；课程、进度、间隔复习、页面韩语键盘、TTS降级及基础无障碍能力均已接入
 
 ## 本地运行
 
