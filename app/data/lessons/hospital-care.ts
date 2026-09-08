@@ -16,8 +16,8 @@ const groups: [string, string, string, string, Seed[]][] = [
 
 export const hospitalCareChapter: Chapter = {
   id: "hospital", titleChinese: "医院看病", titleKorean: "병원과 진료",
-  lessons: groups.map(([id, titleChinese, titleKorean, emoji, seeds]) => ({
-    id: `hospital-${id}`, titleChinese, titleKorean,
-    words: seeds.map(([korean, chinese, english], index): LessonWord => ({ id: `hospital-${id}-${index + 1}`, korean, chinese, english, emoji })),
+  lessons: groups.map(([, titleChinese, titleKorean, emoji, seeds], lessonIndex) => ({
+    id: `hospital-${lessonIndex + 1}`, titleChinese, titleKorean,
+    words: seeds.map(([korean, chinese, english], index): LessonWord => ({ id: `hospital-${lessonIndex + 1}-${index + 1}`, korean, chinese, english, emoji })),
   })),
 };

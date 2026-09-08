@@ -6,10 +6,11 @@ import { workLifeChapter } from "./work-life.ts";
 import { shoppingLifeChapter } from "./shopping-life.ts";
 import { tourismChapter } from "./tourism.ts";
 import { fitnessChapter } from "./fitness.ts";
-import { remainingChapters } from "./remaining-chapters.ts";
+import { moviesTvChapter } from "./movies-tv.ts";
+import { socialLeisureChapter } from "./social-leisure.ts";
 import type { Chapter, LessonWord } from "./types.ts";
 
-export const CHAPTERS: Chapter[] = [dailyFoodChapter, dailyTravelChapter, hotelStayChapter, tourismChapter, shoppingLifeChapter, hospitalCareChapter, workLifeChapter, fitnessChapter, ...remainingChapters];
+export const CHAPTERS: Chapter[] = [dailyFoodChapter, dailyTravelChapter, hotelStayChapter, tourismChapter, shoppingLifeChapter, hospitalCareChapter, workLifeChapter, fitnessChapter, moviesTvChapter, socialLeisureChapter];
 
 export type CourseWord = {
   chapterId: string;

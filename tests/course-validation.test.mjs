@@ -8,6 +8,8 @@ import { workLifeChapter } from "../app/data/lessons/work-life.ts";
 import { shoppingLifeChapter } from "../app/data/lessons/shopping-life.ts";
 import { tourismChapter } from "../app/data/lessons/tourism.ts";
 import { fitnessChapter } from "../app/data/lessons/fitness.ts";
+import { moviesTvChapter } from "../app/data/lessons/movies-tv.ts";
+import { socialLeisureChapter } from "../app/data/lessons/social-leisure.ts";
 import { COURSE_WORDS } from "../app/data/lessons/course.ts";
 import { validateChapter } from "../app/data/lessons/validate.ts";
 
@@ -43,6 +45,11 @@ test("contains all ten planned chapters at 10 by 20", () => {
   for (const entry of COURSE_WORDS) chapterCounts.set(entry.chapterId, (chapterCounts.get(entry.chapterId) ?? 0) + 1);
   assert.equal(chapterCounts.size, 10);
   for (const count of chapterCounts.values()) assert.equal(count, 200);
+  assert.equal(
+    COURSE_WORDS.filter(({ word }) => word.chinese.includes(" · ") || word.english.includes(" · ")).length,
+    0,
+    "课程中不应残留机械生成词的拼接标记",
+  );
 });
 
 test("accepts the curated hospital chapter without generated compounds", () => {
@@ -69,6 +76,24 @@ test("accepts the curated tourism chapter without generated compounds", () => {
 test("accepts the curated fitness chapter without generated compounds", () => {
   assert.deepEqual(validateChapter(fitnessChapter, { lessonsPerChapter: 10, wordsPerLesson: 20 }), []);
   assert.equal(fitnessChapter.lessons.flatMap((lesson) => lesson.words).length, 200);
+});
+
+test("accepts the curated movies chapter without generated compounds", () => {
+  assert.deepEqual(validateChapter(moviesTvChapter, { lessonsPerChapter: 10, wordsPerLesson: 20 }), []);
+  assert.equal(moviesTvChapter.lessons.flatMap((lesson) => lesson.words).length, 200);
+});
+
+test("accepts the curated social chapter without generated compounds", () => {
+  assert.deepEqual(validateChapter(socialLeisureChapter, { lessonsPerChapter: 10, wordsPerLesson: 20 }), []);
+  assert.equal(socialLeisureChapter.lessons.flatMap((lesson) => lesson.words).length, 200);
+});
+
+test("preserves generated-course identifiers while replacing its content", () => {
+  for (const chapter of [tourismChapter, shoppingLifeChapter, hospitalCareChapter, workLifeChapter, fitnessChapter, moviesTvChapter, socialLeisureChapter]) {
+    assert.equal(chapter.lessons[0].id, `${chapter.id}-1`);
+    assert.equal(chapter.lessons[0].words[0].id, `${chapter.id}-1-1`);
+    assert.equal(chapter.lessons[9].words[19].id, `${chapter.id}-10-20`);
+  }
 });
 
 test("rejects duplicate identifiers, duplicate Korean and incomplete records", () => {
