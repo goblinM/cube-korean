@@ -4,6 +4,7 @@ import { dailyFoodChapter } from "../app/data/lessons/daily-food.ts";
 import { dailyTravelChapter } from "../app/data/lessons/daily-travel.ts";
 import { hotelStayChapter } from "../app/data/lessons/hotel-stay.ts";
 import { hospitalCareChapter } from "../app/data/lessons/hospital-care.ts";
+import { workLifeChapter } from "../app/data/lessons/work-life.ts";
 import { COURSE_WORDS } from "../app/data/lessons/course.ts";
 import { validateChapter } from "../app/data/lessons/validate.ts";
 
@@ -45,6 +46,11 @@ test("accepts the curated hospital chapter without generated compounds", () => {
   assert.deepEqual(validateChapter(hospitalCareChapter, { lessonsPerChapter: 10, wordsPerLesson: 20 }), []);
   assert.equal(hospitalCareChapter.lessons.flatMap((lesson) => lesson.words).length, 200);
   assert.ok(hospitalCareChapter.lessons[0].words.some((word) => word.korean === "접수" && word.chinese === "挂号"));
+});
+
+test("accepts the curated work chapter without generated compounds", () => {
+  assert.deepEqual(validateChapter(workLifeChapter, { lessonsPerChapter: 10, wordsPerLesson: 20 }), []);
+  assert.equal(workLifeChapter.lessons.flatMap((lesson) => lesson.words).length, 200);
 });
 
 test("rejects duplicate identifiers, duplicate Korean and incomplete records", () => {

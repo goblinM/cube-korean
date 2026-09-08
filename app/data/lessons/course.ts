@@ -2,10 +2,11 @@ import { dailyFoodChapter } from "./daily-food.ts";
 import { dailyTravelChapter } from "./daily-travel.ts";
 import { hotelStayChapter } from "./hotel-stay.ts";
 import { hospitalCareChapter } from "./hospital-care.ts";
+import { workLifeChapter } from "./work-life.ts";
 import { remainingChapters } from "./remaining-chapters.ts";
 import type { Chapter, LessonWord } from "./types.ts";
 
-export const CHAPTERS: Chapter[] = [dailyFoodChapter, dailyTravelChapter, hotelStayChapter, ...remainingChapters.slice(0, 2), hospitalCareChapter, ...remainingChapters.slice(2)];
+export const CHAPTERS: Chapter[] = [dailyFoodChapter, dailyTravelChapter, hotelStayChapter, ...remainingChapters.slice(0, 2), hospitalCareChapter, workLifeChapter, ...remainingChapters.slice(2)];
 
 export type CourseWord = {
   chapterId: string;
