@@ -7,6 +7,7 @@ import {
   PROGRESS_STORAGE_KEY,
   readProgress,
   recordLessonResult,
+  recordMistakeReview,
   writeProgress,
 } from "../app/features/progress/local-progress.ts";
 
@@ -27,6 +28,22 @@ test("records attempts while retaining the best listening accuracy", () => {
   assert.deepEqual(progress.lessons.cafe.mistakeIds, ["milk"]);
   assert.equal(progress.lessons.cafe.mastery, "learning");
   assert.equal(progress.lessons.cafe.nextReviewAt, "2026-09-08T01:00:00.000Z");
+});
+
+test("adds listening errors and removes them after two clean reviews", () => {
+  let progress = recordLessonResult(createEmptyProgress(), "cafe", 50, ["coffee"], "2026-09-07T00:00:00.000Z");
+  assert.equal(progress.mistakes.coffee.errorCount, 1);
+  progress = recordMistakeReview(progress, ["coffee"], [], "2026-09-08T00:00:00.000Z");
+  assert.equal(progress.mistakes.coffee.correctReviews, 1);
+  progress = recordMistakeReview(progress, ["coffee"], [], "2026-09-09T00:00:00.000Z");
+  assert.equal(progress.mistakes.coffee, undefined);
+});
+
+test("keeps a word after a failed dedicated review", () => {
+  let progress = recordLessonResult(createEmptyProgress(), "cafe", 50, ["coffee"]);
+  progress = recordMistakeReview(progress, ["coffee"], ["coffee"], "2026-09-08T00:00:00.000Z");
+  assert.equal(progress.mistakes.coffee.errorCount, 2);
+  assert.equal(progress.mistakes.coffee.correctReviews, 0);
 });
 
 test("advances from familiar to mastered with spaced review dates", () => {

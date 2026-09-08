@@ -6,8 +6,8 @@
 - 运行：React 19 + TypeScript + Vinext/Vite；
 - 部署：Cloudflare Worker兼容输出，通过Sites发布；
 - 发音：浏览器Web Speech API；
-- 数据：“日常饮食”10关×20词课程位于 `app/data/lessons/`；
-- 持久化：`app/features/progress/local-progress.ts` 通过版本化 `localStorage` 保存关卡进度、掌握度和下次复习时间；
+- 数据：“日常饮食”和“日常出行”共20关×20词位于 `app/data/lessons/`，由 `course.ts` 建立跨关卡索引；
+- 持久化：`app/features/progress/local-progress.ts` 通过版本化 `localStorage` 保存关卡进度、掌握度、复习时间与逐词错误记录；
 - 后端和数据库：MVP不启用，`.openai/hosting.json` 中D1/R2均为空。
 
 ## 目标模块边界

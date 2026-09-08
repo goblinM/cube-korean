@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createLessonSession, submitLessonAnswer } from "../app/features/lessons/session.ts";
+import { createLessonSession, createReviewSession, submitLessonAnswer } from "../app/features/lessons/session.ts";
 
 test("moves from copy to listen while preserving the original word order", () => {
   let session = createLessonSession(["coffee", "beer"]);
@@ -39,4 +39,14 @@ test("finishes only after every retry word is corrected", () => {
 test("ignores submissions for a word that is not currently active", () => {
   const session = createLessonSession(["coffee", "beer"]);
   assert.equal(submitLessonAnswer(session, "beer", true), session);
+});
+
+test("starts mistake review in dictation mode and remembers failed review words", () => {
+  let session = createReviewSession(["coffee", "beer"]);
+  assert.equal(session.phase, "retry");
+  session = submitLessonAnswer(session, "coffee", false);
+  session = submitLessonAnswer(session, "coffee", true);
+  session = submitLessonAnswer(session, "beer", true);
+  assert.equal(session.phase, "results");
+  assert.deepEqual(session.mistakeIds, ["coffee"]);
 });

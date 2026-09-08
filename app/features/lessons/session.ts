@@ -23,6 +23,19 @@ export function createLessonSession(wordIds: string[]): LessonSession {
   };
 }
 
+/** 创建只包含听写与纠错的错词复习会话，不重复看词抄写阶段。 */
+export function createReviewSession(wordIds: string[]): LessonSession {
+  return {
+    phase: "retry",
+    queue: [...wordIds],
+    position: 0,
+    originalWordIds: [...wordIds],
+    mistakeIds: [],
+    firstListenCorrect: 0,
+    currentHadError: false,
+  };
+}
+
 /** 记录当前答案；错误时停留并登记错词，正确时推进下一题或切换听写、重练和结果阶段。 */
 export function submitLessonAnswer(
   session: LessonSession,
@@ -32,7 +45,7 @@ export function submitLessonAnswer(
   if (session.phase === "results" || session.queue[session.position] !== wordId) return session;
 
   if (!isCorrect) {
-    const shouldTrack = session.phase === "listen" && !session.mistakeIds.includes(wordId);
+    const shouldTrack = session.phase !== "copy" && !session.mistakeIds.includes(wordId);
     return {
       ...session,
       currentHadError: true,

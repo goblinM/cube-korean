@@ -25,7 +25,7 @@ npm test
 
 - `npm run build` 是当前已验证的最小构建检查；
 - `npm run lint` 检查TypeScript、React和可访问性规则；
-- `npm test` 会先构建，再运行 `tests/*.test.mjs`；当前22项测试覆盖页面渲染、课程结构、韩语拼写与音节组合、TTS降级、学习会话、顺序解锁、掌握度和本机持久化。
+- `npm test` 会先构建，再运行 `tests/*.test.mjs`；当前26项测试覆盖页面渲染、两套课程结构、韩语拼写与音节组合、TTS降级、学习会话、错词复习、顺序解锁、掌握度和本机持久化。
 
 ## 调试顺序
 

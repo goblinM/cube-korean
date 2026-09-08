@@ -10,9 +10,17 @@ export type LessonProgress = {
   nextReviewAt?: string;
 };
 
+export type WordMistakeProgress = {
+  lessonId: string;
+  errorCount: number;
+  correctReviews: number;
+  lastMistakeAt: string;
+};
+
 export type CourseProgress = {
   version: 1;
   lessons: Record<string, LessonProgress>;
+  mistakes: Record<string, WordMistakeProgress>;
 };
 
 type StorageReader = Pick<Storage, "getItem">;
@@ -20,7 +28,7 @@ type StorageWriter = Pick<Storage, "setItem">;
 
 /** 创建没有历史记录的版本化进度对象，作为首次使用和损坏数据的安全回退。 */
 export function createEmptyProgress(): CourseProgress {
-  return { version: 1, lessons: {} };
+  return { version: 1, lessons: {}, mistakes: {} };
 }
 
 /** 从浏览器存储读取并验证进度外形，格式不兼容或解析失败时返回空进度。 */
@@ -32,7 +40,7 @@ export function readProgress(storage: StorageReader): CourseProgress {
     if (parsed.version !== 1 || !parsed.lessons || typeof parsed.lessons !== "object") {
       return createEmptyProgress();
     }
-    return parsed as CourseProgress;
+    return { ...(parsed as CourseProgress), mistakes: parsed.mistakes ?? {} };
   } catch {
     return createEmptyProgress();
   }
@@ -52,8 +60,19 @@ export function recordLessonResult(
     : accuracy >= 80 ? "familiar" : "learning";
   const reviewDays = mastery === "mastered" ? 7 : mastery === "familiar" ? 3 : 1;
   const nextReviewAt = new Date(new Date(completedAt).getTime() + reviewDays * 86_400_000).toISOString();
+  const mistakes = { ...progress.mistakes };
+  for (const wordId of mistakeIds) {
+    const previousMistake = mistakes[wordId];
+    mistakes[wordId] = {
+      lessonId,
+      errorCount: (previousMistake?.errorCount ?? 0) + 1,
+      correctReviews: 0,
+      lastMistakeAt: completedAt,
+    };
+  }
   return {
     version: 1,
+    mistakes,
     lessons: {
       ...progress.lessons,
       [lessonId]: {
@@ -67,6 +86,31 @@ export function recordLessonResult(
       },
     },
   };
+}
+
+/** 合并一次专项错词复习；连续两轮一次答对后移出错词本，答错则重置掌握进度。 */
+export function recordMistakeReview(
+  progress: CourseProgress,
+  reviewedWordIds: string[],
+  failedWordIds: string[],
+  reviewedAt = new Date().toISOString(),
+): CourseProgress {
+  const failed = new Set(failedWordIds);
+  const mistakes = { ...progress.mistakes };
+
+  for (const wordId of reviewedWordIds) {
+    const previous = mistakes[wordId];
+    if (!previous) continue;
+    if (failed.has(wordId)) {
+      mistakes[wordId] = { ...previous, errorCount: previous.errorCount + 1, correctReviews: 0, lastMistakeAt: reviewedAt };
+    } else if (previous.correctReviews + 1 >= 2) {
+      delete mistakes[wordId];
+    } else {
+      mistakes[wordId] = { ...previous, correctReviews: previous.correctReviews + 1 };
+    }
+  }
+
+  return { ...progress, mistakes };
 }
 
 /** 判断已学关卡是否到达下一次复习时间；旧进度没有计划时视为待复习。 */

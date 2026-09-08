@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { dailyFoodChapter } from "./data/lessons/daily-food";
-import { createLessonSession, submitLessonAnswer } from "./features/lessons/session";
+import { CHAPTERS, COURSE_WORDS } from "./data/lessons/course";
+import { createLessonSession, createReviewSession, submitLessonAnswer } from "./features/lessons/session";
 import {
   createEmptyProgress,
   isReviewDue,
   isLessonUnlocked,
   readProgress,
+  recordMistakeReview,
   recordLessonResult,
   writeProgress,
 } from "./features/progress/local-progress";
@@ -15,8 +16,11 @@ import { speakKorean } from "./features/speech/korean-speech";
 import { composeHangul } from "./features/spelling/compose-hangul";
 import { followsTargetPrefix, isExactSpelling } from "./features/spelling/hangul";
 
-const LESSONS = dailyFoodChapter.lessons;
-const LESSON_IDS = ["☕", "🍳", "🍚", "🍎", "🥬", "🍰", "🍽️", "🌶️", "🍲", "🥩"];
+const LESSON_ICONS: Record<string, string[]> = {
+  "daily-food": ["☕", "🍳", "🍚", "🍎", "🥬", "🍰", "🍽️", "🌶️", "🍲", "🥩"],
+  "daily-travel": ["🚌", "🧭", "🚦", "🚄", "✈️", "🏨", "📸", "🎒", "🎫", "🚑"],
+};
+const TOTAL_LESSON_COUNT = CHAPTERS.reduce((total, item) => total + item.lessons.length, 0);
 
 const KEYS = [
   ["ㅂ", "ㅈ", "ㄷ", "ㄱ", "ㅅ", "ㅛ", "ㅕ", "ㅑ", "ㅐ", "ㅔ"],
@@ -26,9 +30,15 @@ const KEYS = [
 
 export default function Home() {
   const [started, setStarted] = useState(false);
-  const [selectedLessonId, setSelectedLessonId] = useState(LESSONS[0].id);
+  const [showMistakeBook, setShowMistakeBook] = useState(false);
+  const [practiceMode, setPracticeMode] = useState<"lesson" | "mistakes">("lesson");
+  const [selectedChapterId, setSelectedChapterId] = useState(CHAPTERS[0].id);
+  const [selectedLessonId, setSelectedLessonId] = useState(CHAPTERS[0].lessons[0].id);
+  const [reviewWordIds, setReviewWordIds] = useState<string[]>([]);
+  const [mistakeChapterFilter, setMistakeChapterFilter] = useState("all");
+  const [mistakeLessonFilter, setMistakeLessonFilter] = useState("all");
   const [progress, setProgress] = useState(createEmptyProgress);
-  const [session, setSession] = useState(() => createLessonSession(LESSONS[0].words.map((word) => word.id)));
+  const [session, setSession] = useState(() => createLessonSession(CHAPTERS[0].lessons[0].words.map((word) => word.id)));
   const [resultSaved, setResultSaved] = useState(false);
   const [answer, setAnswer] = useState("");
   const [keyboardJamo, setKeyboardJamo] = useState("");
@@ -38,12 +48,27 @@ export default function Home() {
   const [muted, setMuted] = useState(false);
   const [speechUnavailable, setSpeechUnavailable] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const lesson = LESSONS.find((candidate) => candidate.id === selectedLessonId) ?? LESSONS[0];
-  const words = lesson.words;
+  const chapter = CHAPTERS.find((candidate) => candidate.id === selectedChapterId) ?? CHAPTERS[0];
+  const lessons = chapter.lessons;
+  const lesson = lessons.find((candidate) => candidate.id === selectedLessonId) ?? lessons[0];
+  const reviewWords = reviewWordIds.flatMap((id) => {
+    const entry = COURSE_WORDS.find((candidate) => candidate.word.id === id);
+    return entry ? [entry.word] : [];
+  });
+  const words = practiceMode === "mistakes" ? reviewWords : lesson.words;
   const wordId = session.queue[session.position];
-  const word = words.find((candidate) => candidate.id === wordId) ?? words[0];
+  const word = words.find((candidate) => candidate.id === wordId) ?? words[0] ?? CHAPTERS[0].lessons[0].words[0];
   const completedLessons = Object.values(progress.lessons);
   const dueReviewCount = completedLessons.filter((item) => isReviewDue(item)).length;
+  const mistakeEntries = COURSE_WORDS.filter((entry) => {
+    if (!progress.mistakes[entry.word.id]) return false;
+    if (mistakeChapterFilter !== "all" && entry.chapterId !== mistakeChapterFilter) return false;
+    if (mistakeLessonFilter !== "all" && entry.lessonId !== mistakeLessonFilter) return false;
+    return true;
+  });
+  const filterLessons = mistakeChapterFilter === "all"
+    ? CHAPTERS.flatMap((item) => item.lessons)
+    : CHAPTERS.find((item) => item.id === mistakeChapterFilter)?.lessons ?? [];
 
   useEffect(() => {
     const timer = window.setTimeout(() => setProgress(readProgress(window.localStorage)), 0);
@@ -63,19 +88,35 @@ export default function Home() {
     const timer = window.setTimeout(() => {
       const accuracy = Math.round((session.firstListenCorrect / words.length) * 100);
       setProgress((current) => {
-        const updated = recordLessonResult(current, lesson.id, accuracy, session.mistakeIds);
+        const updated = practiceMode === "mistakes"
+          ? recordMistakeReview(current, session.originalWordIds, session.mistakeIds)
+          : recordLessonResult(current, lesson.id, accuracy, session.mistakeIds);
         writeProgress(window.localStorage, updated);
         return updated;
       });
       setResultSaved(true);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [lesson.id, resultSaved, session, words.length]);
+  }, [lesson.id, practiceMode, resultSaved, session, words.length]);
 
   function startLesson(lessonId = selectedLessonId) {
-    const targetLesson = LESSONS.find((candidate) => candidate.id === lessonId) ?? LESSONS[0];
+    const targetLesson = lessons.find((candidate) => candidate.id === lessonId) ?? lessons[0];
+    setPracticeMode("lesson");
     setSelectedLessonId(targetLesson.id);
     setSession(createLessonSession(targetLesson.words.map((item) => item.id)));
+    setAnswer("");
+    setKeyboardJamo("");
+    setMessage("");
+    setResultSaved(false);
+    setStarted(true);
+    window.setTimeout(() => inputRef.current?.focus(), 100);
+  }
+
+  function startMistakeReview(wordIds: string[]) {
+    if (!wordIds.length) return;
+    setPracticeMode("mistakes");
+    setReviewWordIds(wordIds);
+    setSession(createReviewSession(wordIds));
     setAnswer("");
     setKeyboardJamo("");
     setMessage("");
@@ -119,12 +160,38 @@ export default function Home() {
     }
   }
 
+  if (!started && showMistakeBook) {
+    return (
+      <main className="mistake-page">
+        <header className="subpage-header">
+          <button className="back-button" onClick={() => setShowMistakeBook(false)}>← 返回课程</button>
+          <div className="brand"><span>ㅋ</span> CubeKorean</div>
+        </header>
+        <section className="mistake-shell">
+          <div className="mistake-heading">
+            <div><div className="eyebrow">REVIEW BOOK</div><h1>错词本</h1><p>连续两次专项复习一次答对后，单词会自动移出错词本。</p></div>
+            <strong>{Object.keys(progress.mistakes).length}<small>待掌握词</small></strong>
+          </div>
+          <div className="mistake-filters">
+            <label>大关卡<select value={mistakeChapterFilter} onChange={(event) => { setMistakeChapterFilter(event.target.value); setMistakeLessonFilter("all"); }}><option value="all">全部</option>{CHAPTERS.map((item) => <option key={item.id} value={item.id}>{item.titleChinese}</option>)}</select></label>
+            <label>小关卡<select value={mistakeLessonFilter} onChange={(event) => setMistakeLessonFilter(event.target.value)}><option value="all">全部</option>{filterLessons.map((item) => <option key={item.id} value={item.id}>{item.titleChinese}</option>)}</select></label>
+            <button className="review-button" disabled={!mistakeEntries.length} onClick={() => startMistakeReview(mistakeEntries.map((entry) => entry.word.id))}>复习当前 {mistakeEntries.length} 词 →</button>
+          </div>
+          {mistakeEntries.length ? <div className="mistake-grid">{mistakeEntries.map((entry) => {
+            const mistake = progress.mistakes[entry.word.id];
+            return <article key={entry.word.id}><span>{entry.word.emoji}</span><div><b lang="ko">{entry.word.korean}</b><p>{entry.word.chinese} · {entry.word.english}</p><small>{entry.chapterTitle} / {entry.lessonTitle} · 错误 {mistake.errorCount} 次 · 已正确复习 {mistake.correctReviews}/2</small></div></article>;
+          })}</div> : <div className="empty-mistakes"><span>✓</span><h2>当前没有错词</h2><p>完成听音拼写后，答错的词会自动出现在这里。</p></div>}
+        </section>
+      </main>
+    );
+  }
+
   if (!started) {
     return (
       <main className="map-page">
         <header className="brand-row">
           <div className="brand" aria-label="CubeKorean 首页"><span>ㅋ</span> CubeKorean</div>
-          <div className="header-actions"><span className="streak">🔥 7</span><button className="avatar" aria-label="个人中心">안</button></div>
+          <div className="header-actions"><button className="mistake-link" onClick={() => setShowMistakeBook(true)}>错词本 <b>{Object.keys(progress.mistakes).length}</b></button><span className="streak">🔥 7</span><button className="avatar" aria-label="个人中心">안</button></div>
         </header>
 
         <section className="hero">
@@ -133,24 +200,25 @@ export default function Home() {
             <h1>听见生活，<br />写出韩语。</h1>
             <p>不从字母表重新开始。直接进入真实生活词汇，用看词拼写和听音默写，把每一个韩语单词真正记下来。</p>
             <div className="today-card">
-              <div><span>{dueReviewCount ? `今日待复习 ${dueReviewCount} 关` : "课程进度"}</span><strong>{completedLessons.length} / {LESSONS.length} 关</strong></div>
-              <div className="mini-progress"><i style={{ width: `${(Object.keys(progress.lessons).length / LESSONS.length) * 100}%` }} /></div>
+              <div><span>{dueReviewCount ? `今日待复习 ${dueReviewCount} 关` : "课程进度"}</span><strong>{completedLessons.length} / {TOTAL_LESSON_COUNT} 关</strong></div>
+              <div className="mini-progress"><i style={{ width: `${(completedLessons.length / TOTAL_LESSON_COUNT) * 100}%` }} /></div>
             </div>
           </div>
 
           <div className="lesson-map">
+            <div className="chapter-tabs" aria-label="选择大关卡">{CHAPTERS.map((item, index) => <button className={item.id === chapter.id ? "active" : ""} key={item.id} onClick={() => { setSelectedChapterId(item.id); setSelectedLessonId(item.lessons[0].id); }}><span>{index === 0 ? "🍽️" : "🧳"}</span>{item.titleChinese}<small>{item.titleKorean}</small></button>)}</div>
             <div className="cube-wrap" aria-hidden="true">
               <div className="cube">
-                <div className="face front"><b>☕</b><span>카페</span></div>
-                <div className="face right"><b>🍜</b><span>음식</span></div>
+                <div className="face front"><b>{chapter.id === "daily-food" ? "☕" : "🚌"}</b><span>{chapter.id === "daily-food" ? "카페" : "교통"}</span></div>
+                <div className="face right"><b>{chapter.id === "daily-food" ? "🍜" : "✈️"}</b><span>{chapter.id === "daily-food" ? "음식" : "여행"}</span></div>
                 <div className="face top"><b>✦</b></div>
               </div>
               <div className="cube-shadow" />
             </div>
-            <div className="level-meta"><span>{dailyFoodChapter.titleChinese} · 第 {LESSONS.findIndex((item) => item.id === lesson.id) + 1} 关</span><h2>{lesson.titleChinese}</h2><p>{lesson.titleKorean} · 20词</p></div>
+            <div className="level-meta"><span>{chapter.titleChinese} · 第 {lessons.findIndex((item) => item.id === lesson.id) + 1} 关</span><h2>{lesson.titleChinese}</h2><p>{lesson.titleKorean} · 20词</p></div>
             <div className="stage-row">
-              {LESSONS.map((item, index) => {
-                const unlocked = isLessonUnlocked(LESSONS.map((entry) => entry.id), item.id, progress);
+              {lessons.map((item, index) => {
+                const unlocked = isLessonUnlocked(lessons.map((entry) => entry.id), item.id, progress);
                 const completed = progress.lessons[item.id];
                 const selected = item.id === lesson.id;
                 return (
@@ -161,7 +229,7 @@ export default function Home() {
                     onClick={() => setSelectedLessonId(item.id)}
                     aria-label={`${index + 1}. ${item.titleChinese}${unlocked ? "" : "，未解锁"}`}
                   >
-                    <span>{completed ? "✓" : unlocked ? LESSON_IDS[index] : "🔒"}</span>
+                    <span>{completed ? "✓" : unlocked ? LESSON_ICONS[chapter.id][index] : "🔒"}</span>
                     <small>{completed ? (isReviewDue(completed) ? "待复习" : completed.mastery === "mastered" ? "已掌握" : `${completed.bestAccuracy}%`) : unlocked ? item.titleChinese : "未解锁"}</small>
                   </button>
                 );
@@ -175,29 +243,32 @@ export default function Home() {
   }
 
   if (session.phase === "results") {
-    const accuracy = Math.round((session.firstListenCorrect / words.length) * 100);
-    const lessonIndex = LESSONS.findIndex((item) => item.id === lesson.id);
-    const nextLesson = LESSONS[lessonIndex + 1];
+    const isMistakeReview = practiceMode === "mistakes";
+    const accuracy = isMistakeReview
+      ? Math.round(((words.length - session.mistakeIds.length) / words.length) * 100)
+      : Math.round((session.firstListenCorrect / words.length) * 100);
+    const lessonIndex = lessons.findIndex((item) => item.id === lesson.id);
+    const nextLesson = lessons[lessonIndex + 1];
     return (
       <main className="results-page">
         <section className="results-card">
           <div className="result-mark">✓</div>
-          <div className="eyebrow">LESSON COMPLETE</div>
-          <h1>本关完成！</h1>
-          <p>{lesson.titleKorean} · {lesson.titleChinese}</p>
+          <div className="eyebrow">{isMistakeReview ? "REVIEW COMPLETE" : "LESSON COMPLETE"}</div>
+          <h1>{isMistakeReview ? "复习完成！" : "本关完成！"}</h1>
+          <p>{isMistakeReview ? `本轮复习 ${words.length} 个错词` : `${lesson.titleKorean} · ${lesson.titleChinese}`}</p>
           <div className="result-stats">
             <div><strong>{words.length}</strong><span>学习词汇</span></div>
-            <div><strong>{accuracy}%</strong><span>首次听写正确率</span></div>
-            <div><strong>{session.mistakeIds.length}</strong><span>重练词汇</span></div>
+            <div><strong>{accuracy}%</strong><span>{isMistakeReview ? "本轮一次答对率" : "首次听写正确率"}</span></div>
+            <div><strong>{session.mistakeIds.length}</strong><span>{isMistakeReview ? "仍需复习" : "重练词汇"}</span></div>
           </div>
           {session.mistakeIds.length > 0 && (
             <div className="mistake-list">
-              <span>本关已纠正</span>
+              <span>{isMistakeReview ? "本轮出现错误" : "本关已纠正"}</span>
               <div>{session.mistakeIds.map((id) => <b key={id}>{words.find((item) => item.id === id)?.korean}</b>)}</div>
             </div>
           )}
-          <button className="primary" onClick={() => nextLesson ? startLesson(nextLesson.id) : startLesson()}>{nextLesson ? "进入下一关" : "再练一次"} <span>{nextLesson ? "→" : "↻"}</span></button>
-          <button className="result-link" onClick={() => setStarted(false)}>返回关卡地图</button>
+          <button className="primary" onClick={() => isMistakeReview ? setStarted(false) : nextLesson ? startLesson(nextLesson.id) : startLesson()}>{isMistakeReview ? "返回错词本" : nextLesson ? "进入下一关" : "再练一次"} <span>{isMistakeReview || nextLesson ? "→" : "↻"}</span></button>
+          <button className="result-link" onClick={() => { setStarted(false); if (isMistakeReview) setShowMistakeBook(false); }}>{isMistakeReview ? "返回课程地图" : "返回关卡地图"}</button>
         </section>
       </main>
     );
