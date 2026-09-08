@@ -5,10 +5,11 @@ import { hospitalCareChapter } from "./hospital-care.ts";
 import { workLifeChapter } from "./work-life.ts";
 import { shoppingLifeChapter } from "./shopping-life.ts";
 import { tourismChapter } from "./tourism.ts";
+import { fitnessChapter } from "./fitness.ts";
 import { remainingChapters } from "./remaining-chapters.ts";
 import type { Chapter, LessonWord } from "./types.ts";
 
-export const CHAPTERS: Chapter[] = [dailyFoodChapter, dailyTravelChapter, hotelStayChapter, tourismChapter, shoppingLifeChapter, hospitalCareChapter, workLifeChapter, ...remainingChapters];
+export const CHAPTERS: Chapter[] = [dailyFoodChapter, dailyTravelChapter, hotelStayChapter, tourismChapter, shoppingLifeChapter, hospitalCareChapter, workLifeChapter, fitnessChapter, ...remainingChapters];
 
 export type CourseWord = {
   chapterId: string;

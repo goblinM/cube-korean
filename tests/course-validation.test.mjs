@@ -7,6 +7,7 @@ import { hospitalCareChapter } from "../app/data/lessons/hospital-care.ts";
 import { workLifeChapter } from "../app/data/lessons/work-life.ts";
 import { shoppingLifeChapter } from "../app/data/lessons/shopping-life.ts";
 import { tourismChapter } from "../app/data/lessons/tourism.ts";
+import { fitnessChapter } from "../app/data/lessons/fitness.ts";
 import { COURSE_WORDS } from "../app/data/lessons/course.ts";
 import { validateChapter } from "../app/data/lessons/validate.ts";
 
@@ -63,6 +64,11 @@ test("accepts the curated shopping chapter without generated compounds", () => {
 test("accepts the curated tourism chapter without generated compounds", () => {
   assert.deepEqual(validateChapter(tourismChapter, { lessonsPerChapter: 10, wordsPerLesson: 20 }), []);
   assert.equal(tourismChapter.lessons.flatMap((lesson) => lesson.words).length, 200);
+});
+
+test("accepts the curated fitness chapter without generated compounds", () => {
+  assert.deepEqual(validateChapter(fitnessChapter, { lessonsPerChapter: 10, wordsPerLesson: 20 }), []);
+  assert.equal(fitnessChapter.lessons.flatMap((lesson) => lesson.words).length, 200);
 });
 
 test("rejects duplicate identifiers, duplicate Korean and incomplete records", () => {
