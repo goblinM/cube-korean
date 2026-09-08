@@ -6,7 +6,7 @@
 - 运行：React 19 + TypeScript + Vinext/Vite；
 - 部署：Cloudflare Worker兼容输出，通过Sites发布；
 - 发音：浏览器Web Speech API；
-- 数据：“日常饮食”“日常出行”“酒店住宿”共30关×20词位于 `app/data/lessons/`，由 `course.ts` 建立跨关卡索引；迁移词条保留稳定ID；
+- 数据：十大生活主题共100关×20词位于 `app/data/lessons/`，由 `course.ts` 建立跨关卡索引；迁移词条保留稳定ID；
 - 持久化：`app/features/progress/local-progress.ts` 通过版本化 `localStorage` 保存关卡进度、掌握度、复习时间与逐词错误记录；
 - 后端和数据库：MVP不启用，`.openai/hosting.json` 中D1/R2均为空。
 
@@ -23,7 +23,7 @@
   └── 发音适配器（SpeechSynthesis）
 ```
 
-当前已落地拼写判断、页面键盘音节组合、学习会话、课程校验、本机进度、语音适配器和3×10×20课程数据模块；页面组件负责将这些模块编排为交互流程。
+当前已落地拼写判断、页面键盘音节组合、学习会话、课程校验、本机进度、语音适配器和10×10×20课程数据模块；页面组件负责将这些模块编排为交互流程。
 
 ## 建议目录
 

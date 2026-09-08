@@ -19,8 +19,8 @@ test("accepts the complete 10 by 20 daily-travel course with global word ids", (
   assert.equal(dailyTravelChapter.lessons.length, 10);
   assert.equal(dailyTravelChapter.lessons.reduce((count, lesson) => count + lesson.words.length, 0), 200);
   assert.deepEqual(validateChapter(dailyTravelChapter, { lessonsPerChapter: 10, wordsPerLesson: 20 }), []);
-  assert.equal(COURSE_WORDS.length, 600);
-  assert.equal(new Set(COURSE_WORDS.map((entry) => entry.word.id)).size, 600);
+  assert.equal(COURSE_WORDS.length, 2000);
+  assert.equal(new Set(COURSE_WORDS.map((entry) => entry.word.id)).size, 2000);
 });
 
 test("accepts the hotel-stay migration and complete 10 by 20 chapter", () => {
@@ -30,6 +30,14 @@ test("accepts the hotel-stay migration and complete 10 by 20 chapter", () => {
   assert.equal(hotelStayChapter.lessons[0].id, "accommodation");
   assert.ok(hotelStayChapter.lessons[0].words.some((word) => word.id === "travel-accommodation-1"));
   assert.equal(new Set(hotelStayChapter.lessons.flatMap((lesson) => lesson.words.map((word) => word.korean))).size, 200);
+});
+
+test("contains all ten planned chapters at 10 by 20", () => {
+  assert.equal(COURSE_WORDS.length, 2000);
+  const chapterCounts = new Map();
+  for (const entry of COURSE_WORDS) chapterCounts.set(entry.chapterId, (chapterCounts.get(entry.chapterId) ?? 0) + 1);
+  assert.equal(chapterCounts.size, 10);
+  for (const count of chapterCounts.values()) assert.equal(count, 200);
 });
 
 test("rejects duplicate identifiers, duplicate Korean and incomplete records", () => {
