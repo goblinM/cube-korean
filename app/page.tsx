@@ -68,6 +68,8 @@ export default function Home() {
   const wordId = session.queue[session.position];
   const word = words.find((candidate) => candidate.id === wordId) ?? words[0] ?? CHAPTERS[0].lessons[0].words[0];
   const completedLessons = Object.values(progress.lessons);
+  const todayKey = new Date().toLocaleDateString("zh-CN");
+  const todayCompletedCount = completedLessons.filter((item) => new Date(item.completedAt).toLocaleDateString("zh-CN") === todayKey).length;
   const dueReviewCount = completedLessons.filter((item) => isReviewDue(item)).length;
   const mistakeEntries = COURSE_WORDS.filter((entry) => {
     if (!progress.mistakes[entry.word.id]) return false;
@@ -200,7 +202,7 @@ export default function Home() {
       <main className="map-page">
         <header className="brand-row">
           <div className="brand" aria-label="CubeKorean 首页"><span>ㅋ</span> CubeKorean</div>
-          <div className="header-actions"><button className="mistake-link" onClick={() => setShowMistakeBook(true)}>错词本 <b>{Object.keys(progress.mistakes).length}</b></button><span className="streak">🔥 7</span><button className="avatar" aria-label="个人中心">안</button></div>
+          <div className="header-actions"><button className="mistake-link" onClick={() => setShowMistakeBook(true)}>错词本 <b>{Object.keys(progress.mistakes).length}</b></button><span className="daily-status" aria-label={`今日完成 ${todayCompletedCount} 关`}><small>今日</small><strong>{todayCompletedCount}<em>关</em></strong></span><button className="avatar" aria-label="个人中心">안</button></div>
         </header>
 
         <section className="hero">
