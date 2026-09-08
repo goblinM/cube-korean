@@ -22,7 +22,7 @@ test("server-renders the CubeKorean lesson map", async () => {
   assert.match(html, /<title>CubeKorean/);
   assert.match(html, /听见生活/);
   assert.match(html, /咖啡店与饮品/);
-  assert.match(html, /日常出行/);
+  assert.match(html, /交通出行/);
   assert.match(html, /错词本/);
   assert.match(html, /开始本关/);
   assert.doesNotMatch(html, /Your site is taking shape|Building your site/);

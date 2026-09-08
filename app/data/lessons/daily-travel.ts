@@ -14,11 +14,11 @@ function lesson(id: string, titleChinese: string, titleKorean: string, seeds: Wo
   };
 }
 
-/** 提供“日常出行”大关卡的10关×20词，覆盖通勤、问路、住宿与旅行应急。 */
+/** 提供“交通出行”大关卡的10关×20词，覆盖通勤、问路、乘车与交通安全。 */
 export const dailyTravelChapter: Chapter = {
   id: "daily-travel",
-  titleChinese: "日常出行",
-  titleKorean: "일상 이동",
+  titleChinese: "交通出行",
+  titleKorean: "교통과 이동",
   lessons: [
     lesson("public-transport", "公共交通", "대중교통", [
       ["교통", "交通", "transportation", "🚦"], ["버스", "公交车", "bus", "🚌"],
@@ -92,29 +92,29 @@ export const dailyTravelChapter: Chapter = {
       ["승차하다", "乘车", "board", "⬆️"], ["하차하다", "下车", "alight", "⬇️"],
       ["교통편", "交通方式", "transport option", "🗺️"], ["운행하다", "运行", "operate", "🔄"],
     ]),
-    lesson("sightseeing", "观光", "관광", [
-      ["여행", "旅行", "travel", "🧳"], ["관광", "观光", "sightseeing", "📸"],
-      ["관광지", "旅游地", "tourist site", "🏞️"], ["명소", "名胜", "attraction", "⭐"],
-      ["안내소", "咨询处", "information center", "ℹ️"], ["안내원", "讲解员", "guide", "🧑‍💼"],
-      ["여행객", "旅行者", "traveler", "🎒"], ["관광객", "游客", "tourist", "📷"],
-      ["사진", "照片", "photo", "📷"], ["기념품", "纪念品", "souvenir", "🎁"],
-      ["박물관", "博物馆", "museum", "🏛️"], ["미술관", "美术馆", "art museum", "🖼️"],
-      ["궁궐", "宫殿", "palace", "🏯"], ["사찰", "寺庙", "temple", "🛕"],
-      ["공원", "公园", "park", "🌳"], ["해변", "海边", "beach", "🏖️"],
-      ["산", "山", "mountain", "⛰️"], ["섬", "岛", "island", "🏝️"],
-      ["구경하다", "参观", "look around", "👀"], ["촬영하다", "拍摄", "photograph", "🎥"],
+    lesson("sightseeing", "地铁与换乘", "지하철과 환승", [
+      ["환승역", "换乘站", "transfer station", "🔄"], ["환승통로", "换乘通道", "transfer passage", "🚶"],
+      ["노선도", "线路图", "route map", "🗺️"], ["출입구", "出入口", "entrance and exit", "🚪"],
+      ["역무원", "车站工作人员", "station staff", "🧑‍✈️"], ["스크린도어", "站台屏蔽门", "platform screen door", "🚪"],
+      ["종착역", "终点站", "terminal station", "🏁"], ["환승시간", "换乘时间", "transfer time", "⏱️"],
+      ["환승할인", "换乘优惠", "transfer discount", "🏷️"], ["승차방향", "乘车方向", "travel direction", "➡️"],
+      ["반대편", "对面站台", "opposite side", "↔️"], ["완행", "慢车", "local service", "🚇"],
+      ["막차시간", "末班车时间", "last train time", "🌙"], ["첫차시간", "首班车时间", "first train time", "🌅"],
+      ["교통약자석", "爱心座位", "priority seat", "💺"], ["임산부석", "孕妇专座", "pregnancy priority seat", "💺"],
+      ["분실물센터", "失物招领处", "lost and found", "📦"], ["물품보관함", "储物柜", "locker", "🧳"],
+      ["환승하다", "换乘", "transfer", "🔄"], ["갈아타다", "换乘车辆", "change vehicles", "🔁"],
     ]),
-    lesson("travel-items", "旅行用品", "여행용품", [
-      ["배낭", "背包", "backpack", "🎒"], ["지갑", "钱包", "wallet", "👛"],
-      ["우산", "雨伞", "umbrella", "☂️"], ["모자", "帽子", "hat", "🧢"],
-      ["선글라스", "太阳镜", "sunglasses", "🕶️"], ["카메라", "相机", "camera", "📷"],
-      ["충전기", "充电器", "charger", "🔌"], ["배터리", "电池", "battery", "🔋"],
-      ["휴대전화", "手机", "mobile phone", "📱"], ["이어폰", "耳机", "earphones", "🎧"],
-      ["세면도구", "洗漱用品", "toiletries", "🧴"], ["칫솔", "牙刷", "toothbrush", "🪥"],
-      ["치약", "牙膏", "toothpaste", "🦷"], ["여벌옷", "替换衣物", "spare clothes", "👕"],
-      ["운동화", "运动鞋", "sneakers", "👟"], ["안내책자", "旅游手册", "guidebook", "📖"],
-      ["손전등", "手电筒", "flashlight", "🔦"], ["약", "药", "medicine", "💊"],
-      ["물병", "水瓶", "water bottle", "🍼"], ["자물쇠", "锁", "padlock", "🔒"],
+    lesson("travel-items", "出租车", "택시 이용", [
+      ["택시승강장", "出租车乘车点", "taxi stand", "🚕"], ["택시기사", "出租车司机", "taxi driver", "🧑‍✈️"],
+      ["기본요금", "起步价", "base fare", "💰"], ["추가요금", "附加费", "extra charge", "💵"],
+      ["미터기", "计价器", "taximeter", "🧾"], ["목적지", "目的地", "destination", "📍"],
+      ["승차거부", "拒载", "refusal of service", "🚫"], ["합승", "拼车", "shared ride", "👥"],
+      ["호출앱", "叫车软件", "ride-hailing app", "📱"], ["대형택시", "大型出租车", "large taxi", "🚐"],
+      ["모범택시", "模范出租车", "deluxe taxi", "🚖"], ["일반택시", "普通出租车", "regular taxi", "🚕"],
+      ["심야할증", "深夜附加费", "late-night surcharge", "🌙"], ["통행료", "过路费", "toll", "🛣️"],
+      ["택시비", "出租车费", "taxi fare", "💳"], ["현금영수증", "现金收据", "cash receipt", "🧾"],
+      ["카드단말기", "刷卡机", "card terminal", "💳"], ["세워주세요", "请在这里停车", "please stop", "🛑"],
+      ["출발해주세요", "请出发", "please go", "▶️"], ["내비게이션", "导航仪", "navigation system", "🧭"],
     ]),
     lesson("tickets", "票务与预约", "표와 예약", [
       ["승차권", "乘车票", "transport ticket", "🎫"], ["입장권", "门票", "admission ticket", "🎟️"],
