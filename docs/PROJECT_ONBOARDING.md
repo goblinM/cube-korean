@@ -2,7 +2,7 @@
 
 ## 1. 一分钟概览
 
-CubeKorean 是面向具备少量基础学习者的韩语生活词汇拼写网站。当前已实现“日常饮食、日常出行”共20关×20词、顺序解锁、本机进度和错词本专项复习。核心价值是看词拼写、听音拼写和IME友好的即时纠错。当前版本不依赖后端。
+CubeKorean 是面向具备少量基础学习者的韩语生活词汇拼写网站。当前已实现“日常饮食、日常出行、酒店住宿”共30关×20词、顺序解锁、本机进度和错词本专项复习。核心价值是看词拼写、听音拼写和IME友好的即时纠错。当前版本不依赖后端。
 
 ## 2. 第一次运行与验证
 
@@ -23,7 +23,7 @@ Node.js >=22.13.0 → npm install → npm run dev
 | 学习会话 | `app/features/lessons/session.ts` | 看词、听写、错词重练与结果阶段切换 |
 | 本机进度 | `app/features/progress/local-progress.ts` | 读取、校验和更新完成记录、掌握度及复习日期 |
 | 发音适配 | `app/features/speech/korean-speech.ts` | 韩语TTS调用和无语音环境降级 |
-| 课程数据 | `app/data/lessons/` | 两个大关卡、跨课程词汇索引及结构校验 |
+| 课程数据 | `app/data/lessons/` | 三个大关卡、跨课程词汇索引及结构校验 |
 | 页面样式 | `app/globals.css` | 地图、练习页和响应式布局 |
 | 根布局 | `app/layout.tsx` | 页面语言、字体和元数据 |
 | Worker入口 | `worker/index.ts` | 将请求交给Vinext App Router，并处理图片优化 |

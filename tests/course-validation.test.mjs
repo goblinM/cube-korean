@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { dailyFoodChapter } from "../app/data/lessons/daily-food.ts";
 import { dailyTravelChapter } from "../app/data/lessons/daily-travel.ts";
+import { hotelStayChapter } from "../app/data/lessons/hotel-stay.ts";
 import { COURSE_WORDS } from "../app/data/lessons/course.ts";
 import { validateChapter } from "../app/data/lessons/validate.ts";
 
@@ -18,8 +19,17 @@ test("accepts the complete 10 by 20 daily-travel course with global word ids", (
   assert.equal(dailyTravelChapter.lessons.length, 10);
   assert.equal(dailyTravelChapter.lessons.reduce((count, lesson) => count + lesson.words.length, 0), 200);
   assert.deepEqual(validateChapter(dailyTravelChapter, { lessonsPerChapter: 10, wordsPerLesson: 20 }), []);
-  assert.equal(COURSE_WORDS.length, 400);
-  assert.equal(new Set(COURSE_WORDS.map((entry) => entry.word.id)).size, 400);
+  assert.equal(COURSE_WORDS.length, 600);
+  assert.equal(new Set(COURSE_WORDS.map((entry) => entry.word.id)).size, 600);
+});
+
+test("accepts the hotel-stay migration and complete 10 by 20 chapter", () => {
+  assert.equal(hotelStayChapter.lessons.length, 10);
+  assert.equal(hotelStayChapter.lessons.reduce((count, lesson) => count + lesson.words.length, 0), 200);
+  assert.deepEqual(validateChapter(hotelStayChapter, { lessonsPerChapter: 10, wordsPerLesson: 20 }), []);
+  assert.equal(hotelStayChapter.lessons[0].id, "accommodation");
+  assert.ok(hotelStayChapter.lessons[0].words.some((word) => word.id === "travel-accommodation-1"));
+  assert.equal(new Set(hotelStayChapter.lessons.flatMap((lesson) => lesson.words.map((word) => word.korean))).size, 200);
 });
 
 test("rejects duplicate identifiers, duplicate Korean and incomplete records", () => {

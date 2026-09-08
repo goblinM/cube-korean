@@ -19,6 +19,7 @@ import { followsTargetPrefix, isExactSpelling } from "./features/spelling/hangul
 const LESSON_ICONS: Record<string, string[]> = {
   "daily-food": ["☕", "🍳", "🍚", "🍎", "🥬", "🍰", "🍽️", "🌶️", "🍲", "🥩"],
   "daily-travel": ["🚌", "🧭", "🚦", "🚄", "✈️", "🏨", "📸", "🎒", "🎫", "🚑"],
+  "hotel-stay": ["🏨", "📅", "🛎️", "🛏️", "🛋️", "🚿", "🧹", "⚠️", "💳", "🧳"],
 };
 const TOTAL_LESSON_COUNT = CHAPTERS.reduce((total, item) => total + item.lessons.length, 0);
 
@@ -206,11 +207,11 @@ export default function Home() {
           </div>
 
           <div className="lesson-map">
-            <div className="chapter-tabs" aria-label="选择大关卡">{CHAPTERS.map((item, index) => <button className={item.id === chapter.id ? "active" : ""} key={item.id} onClick={() => { setSelectedChapterId(item.id); setSelectedLessonId(item.lessons[0].id); }}><span>{index === 0 ? "🍽️" : "🧳"}</span>{item.titleChinese}<small>{item.titleKorean}</small></button>)}</div>
+            <div className="chapter-tabs" aria-label="选择大关卡">{CHAPTERS.map((item, index) => <button className={item.id === chapter.id ? "active" : ""} key={item.id} onClick={() => { setSelectedChapterId(item.id); setSelectedLessonId(item.lessons[0].id); }}><span>{index === 0 ? "🍽️" : index === 1 ? "🚌" : "🏨"}</span>{item.titleChinese}<small>{item.titleKorean}</small></button>)}</div>
             <div className="cube-wrap" aria-hidden="true">
               <div className="cube">
-                <div className="face front"><b>{chapter.id === "daily-food" ? "☕" : "🚌"}</b><span>{chapter.id === "daily-food" ? "카페" : "교통"}</span></div>
-                <div className="face right"><b>{chapter.id === "daily-food" ? "🍜" : "✈️"}</b><span>{chapter.id === "daily-food" ? "음식" : "여행"}</span></div>
+                <div className="face front"><b>{chapter.id === "daily-food" ? "☕" : chapter.id === "daily-travel" ? "🚌" : "🏨"}</b><span>{chapter.id === "daily-food" ? "카페" : chapter.id === "daily-travel" ? "교통" : "호텔"}</span></div>
+                <div className="face right"><b>{chapter.id === "daily-food" ? "🍜" : chapter.id === "daily-travel" ? "✈️" : "🛎️"}</b><span>{chapter.id === "daily-food" ? "음식" : chapter.id === "daily-travel" ? "여행" : "숙박"}</span></div>
                 <div className="face top"><b>✦</b></div>
               </div>
               <div className="cube-shadow" />
