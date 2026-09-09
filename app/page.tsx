@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CHAPTERS, COURSE_WORDS } from "./data/lessons/course";
 import { createLessonSession, createReviewSession, submitLessonAnswer } from "./features/lessons/session";
+import { countDueLessons, recommendLesson } from "./features/lessons/recommendation";
 import {
   createEmptyProgress,
   isReviewDue,
@@ -70,7 +71,8 @@ export default function Home() {
   const completedLessons = Object.values(progress.lessons);
   const todayKey = new Date().toLocaleDateString("zh-CN");
   const todayCompletedCount = completedLessons.filter((item) => new Date(item.completedAt).toLocaleDateString("zh-CN") === todayKey).length;
-  const dueReviewCount = completedLessons.filter((item) => isReviewDue(item)).length;
+  const dueReviewCount = countDueLessons(progress);
+  const recommendation = recommendLesson(CHAPTERS, progress);
   const mistakeEntries = COURSE_WORDS.filter((entry) => {
     if (!progress.mistakes[entry.word.id]) return false;
     if (mistakeChapterFilter !== "all" && entry.chapterId !== mistakeChapterFilter) return false;
@@ -110,9 +112,11 @@ export default function Home() {
     return () => window.clearTimeout(timer);
   }, [lesson.id, practiceMode, resultSaved, session, words.length]);
 
-  function startLesson(lessonId = selectedLessonId) {
-    const targetLesson = lessons.find((candidate) => candidate.id === lessonId) ?? lessons[0];
+  function startLesson(lessonId = selectedLessonId, chapterId = selectedChapterId) {
+    const targetChapter = CHAPTERS.find((candidate) => candidate.id === chapterId) ?? CHAPTERS[0];
+    const targetLesson = targetChapter.lessons.find((candidate) => candidate.id === lessonId) ?? targetChapter.lessons[0];
     setPracticeMode("lesson");
+    setSelectedChapterId(targetChapter.id);
     setSelectedLessonId(targetLesson.id);
     setSession(createLessonSession(targetLesson.words.map((item) => item.id)));
     setAnswer("");
@@ -211,8 +215,9 @@ export default function Home() {
             <h1>听见生活，<br />写出韩语。</h1>
             <p>不从字母表重新开始。直接进入真实生活词汇，用看词拼写和听音默写，把每一个韩语单词真正记下来。</p>
             <div className="today-card">
-              <div><span>{dueReviewCount ? `今日待复习 ${dueReviewCount} 关` : "课程进度"}</span><strong>{completedLessons.length} / {TOTAL_LESSON_COUNT} 关</strong></div>
+              <div><span>{dueReviewCount ? `今日待复习 ${dueReviewCount} 关` : recommendation.reason === "complete" ? "全部课程已完成" : "推荐继续学习"}</span><strong>{completedLessons.length} / {TOTAL_LESSON_COUNT} 关</strong></div>
               <div className="mini-progress"><i style={{ width: `${(completedLessons.length / TOTAL_LESSON_COUNT) * 100}%` }} /></div>
+              <button onClick={() => startLesson(recommendation.lessonId, recommendation.chapterId)}>{recommendation.reason === "review" ? "开始今日复习" : recommendation.reason === "complete" ? "巩固第一关" : "继续下一关"}<span>→</span></button>
             </div>
           </div>
 
