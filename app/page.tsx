@@ -14,6 +14,8 @@ import {
   writeProgress,
 } from "./features/progress/local-progress";
 import { readLearningLocation, writeLearningLocation } from "./features/progress/learning-location";
+import { clearLearningCheckpoint, readLearningCheckpoint, writeLearningCheckpoint } from "./features/progress/learning-checkpoint";
+import { readLearningPreferences, writeLearningPreferences } from "./features/progress/learning-preferences";
 import { speakKorean } from "./features/speech/korean-speech";
 import { composeHangul } from "./features/spelling/compose-hangul";
 import { followsTargetPrefix, isExactSpelling } from "./features/spelling/hangul";
@@ -45,6 +47,8 @@ export default function Home() {
   const [selectedChapterId, setSelectedChapterId] = useState(CHAPTERS[0].id);
   const [selectedLessonId, setSelectedLessonId] = useState(CHAPTERS[0].lessons[0].id);
   const [locationReady, setLocationReady] = useState(false);
+  const [preferencesReady, setPreferencesReady] = useState(false);
+  const [checkpointReady, setCheckpointReady] = useState(false);
   const [reviewWordIds, setReviewWordIds] = useState<string[]>([]);
   const [mistakeChapterFilter, setMistakeChapterFilter] = useState("all");
   const [mistakeLessonFilter, setMistakeLessonFilter] = useState("all");
@@ -92,7 +96,56 @@ export default function Home() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      const location = readLearningLocation(window.localStorage, CHAPTERS);
+      const preferences = readLearningPreferences(window.localStorage);
+      setShowEnglish(preferences.showEnglish);
+      setNativeKeyboard(preferences.nativeKeyboard);
+      setMuted(preferences.muted);
+      setPreferencesReady(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!preferencesReady) return;
+    writeLearningPreferences(window.localStorage, { showEnglish, nativeKeyboard, muted });
+  }, [muted, nativeKeyboard, preferencesReady, showEnglish]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const checkpoint = readLearningCheckpoint(window.localStorage, CHAPTERS);
+      if (checkpoint) {
+        setPracticeMode(checkpoint.practiceMode);
+        setSelectedChapterId(checkpoint.selectedChapterId);
+        setSelectedLessonId(checkpoint.selectedLessonId);
+        setReviewWordIds(checkpoint.reviewWordIds);
+        setSession(checkpoint.session);
+        setMessage("已恢复上次练习");
+        setStarted(true);
+      }
+      setCheckpointReady(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!checkpointReady) return;
+    if (!started || session.phase === "results") {
+      clearLearningCheckpoint(window.localStorage);
+      return;
+    }
+    writeLearningCheckpoint(window.localStorage, {
+      practiceMode,
+      selectedChapterId,
+      selectedLessonId,
+      reviewWordIds,
+      session,
+    });
+  }, [checkpointReady, practiceMode, reviewWordIds, selectedChapterId, selectedLessonId, session, started]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const checkpoint = readLearningCheckpoint(window.localStorage, CHAPTERS);
+      const location = checkpoint ? null : readLearningLocation(window.localStorage, CHAPTERS);
       if (location) {
         setSelectedChapterId(location.chapterId);
         setSelectedLessonId(location.lessonId);
