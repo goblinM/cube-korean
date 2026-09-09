@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { CHAPTERS, COURSE_WORDS } from "./data/lessons/course";
 import { createLessonSession, createReviewSession, submitLessonAnswer } from "./features/lessons/session";
 import { countDueLessons, recommendLesson } from "./features/lessons/recommendation";
+import { selectWeakWordIds } from "./features/lessons/weak-review";
 import {
   createEmptyProgress,
   isReviewDue,
@@ -101,6 +102,7 @@ export default function Home() {
     if (mistakeLessonFilter !== "all" && entry.lessonId !== mistakeLessonFilter) return false;
     return true;
   });
+  const weakWordIds = selectWeakWordIds(COURSE_WORDS, progress);
   const filterLessons = mistakeChapterFilter === "all"
     ? CHAPTERS.flatMap((item) => item.lessons)
     : CHAPTERS.find((item) => item.id === mistakeChapterFilter)?.lessons ?? [];
@@ -373,6 +375,11 @@ export default function Home() {
             <div><div className="eyebrow">REVIEW BOOK</div><h1>错词本</h1><p>连续两次专项复习一次答对后，单词会自动移出错词本。</p></div>
             <strong>{Object.keys(progress.mistakes).length}<small>待掌握词</small></strong>
           </div>
+          <section className="smart-review-card">
+            <span>⚡</span>
+            <div><small>SMART REVIEW</small><h2>智能弱项复习</h2><p>{weakWordIds.length ? `已从全部错词中选出最需要巩固的 ${weakWordIds.length} 个词。` : "完成听音拼写并产生错词后，这里会自动生成短时复习。"}</p></div>
+            <button disabled={!weakWordIds.length} onClick={() => startMistakeReview(weakWordIds)}>开始复习 <b>→</b></button>
+          </section>
           <div className="mistake-filters">
             <label>大关卡<select value={mistakeChapterFilter} onChange={(event) => { setMistakeChapterFilter(event.target.value); setMistakeLessonFilter("all"); }}><option value="all">全部</option>{CHAPTERS.map((item) => <option key={item.id} value={item.id}>{item.titleChinese}</option>)}</select></label>
             <label>小关卡<select value={mistakeLessonFilter} onChange={(event) => setMistakeLessonFilter(event.target.value)}><option value="all">全部</option>{filterLessons.map((item) => <option key={item.id} value={item.id}>{item.titleChinese}</option>)}</select></label>
