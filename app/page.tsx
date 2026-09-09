@@ -13,6 +13,7 @@ import {
   recordLessonResult,
   writeProgress,
 } from "./features/progress/local-progress";
+import { readLearningLocation, writeLearningLocation } from "./features/progress/learning-location";
 import { speakKorean } from "./features/speech/korean-speech";
 import { composeHangul } from "./features/spelling/compose-hangul";
 import { followsTargetPrefix, isExactSpelling } from "./features/spelling/hangul";
@@ -43,6 +44,7 @@ export default function Home() {
   const [practiceMode, setPracticeMode] = useState<"lesson" | "mistakes">("lesson");
   const [selectedChapterId, setSelectedChapterId] = useState(CHAPTERS[0].id);
   const [selectedLessonId, setSelectedLessonId] = useState(CHAPTERS[0].lessons[0].id);
+  const [locationReady, setLocationReady] = useState(false);
   const [reviewWordIds, setReviewWordIds] = useState<string[]>([]);
   const [mistakeChapterFilter, setMistakeChapterFilter] = useState("all");
   const [mistakeLessonFilter, setMistakeLessonFilter] = useState("all");
@@ -87,6 +89,23 @@ export default function Home() {
     const timer = window.setTimeout(() => setProgress(readProgress(window.localStorage)), 0);
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const location = readLearningLocation(window.localStorage, CHAPTERS);
+      if (location) {
+        setSelectedChapterId(location.chapterId);
+        setSelectedLessonId(location.lessonId);
+      }
+      setLocationReady(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!locationReady) return;
+    writeLearningLocation(window.localStorage, selectedChapterId, selectedLessonId);
+  }, [locationReady, selectedChapterId, selectedLessonId]);
 
   useEffect(() => {
     if (!started || muted || session.phase === "results") return;
