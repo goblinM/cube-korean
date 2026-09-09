@@ -26,6 +26,37 @@ export type CourseProgress = {
 type StorageReader = Pick<Storage, "getItem">;
 type StorageWriter = Pick<Storage, "setItem">;
 
+function isValidDate(value: unknown): value is string {
+  return typeof value === "string" && Number.isFinite(Date.parse(value));
+}
+
+function isValidAccuracy(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100;
+}
+
+/** 深度校验导入或本机读取的进度结构，防止损坏字段进入学习流程。 */
+export function isCourseProgress(value: unknown): value is CourseProgress {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<CourseProgress>;
+  if (candidate.version !== 1 || !candidate.lessons || typeof candidate.lessons !== "object" || !candidate.mistakes || typeof candidate.mistakes !== "object") return false;
+  const lessonsValid = Object.values(candidate.lessons).every((lesson) =>
+    lesson
+    && Number.isInteger(lesson.attempts) && lesson.attempts >= 0
+    && isValidAccuracy(lesson.bestAccuracy)
+    && isValidAccuracy(lesson.lastAccuracy)
+    && Array.isArray(lesson.mistakeIds) && lesson.mistakeIds.every((id) => typeof id === "string")
+    && isValidDate(lesson.completedAt)
+    && (lesson.mastery === undefined || ["learning", "familiar", "mastered"].includes(lesson.mastery))
+    && (lesson.nextReviewAt === undefined || isValidDate(lesson.nextReviewAt)));
+  const mistakesValid = Object.values(candidate.mistakes).every((mistake) =>
+    mistake
+    && typeof mistake.lessonId === "string"
+    && Number.isInteger(mistake.errorCount) && mistake.errorCount >= 0
+    && Number.isInteger(mistake.correctReviews) && mistake.correctReviews >= 0
+    && isValidDate(mistake.lastMistakeAt));
+  return lessonsValid && mistakesValid;
+}
+
 /** 创建没有历史记录的版本化进度对象，作为首次使用和损坏数据的安全回退。 */
 export function createEmptyProgress(): CourseProgress {
   return { version: 1, lessons: {}, mistakes: {} };
@@ -37,10 +68,13 @@ export function readProgress(storage: StorageReader): CourseProgress {
     const raw = storage.getItem(PROGRESS_STORAGE_KEY);
     if (!raw) return createEmptyProgress();
     const parsed = JSON.parse(raw) as Partial<CourseProgress>;
-    if (parsed.version !== 1 || !parsed.lessons || typeof parsed.lessons !== "object") {
+    if (parsed.version === 1 && parsed.lessons && typeof parsed.lessons === "object" && !parsed.mistakes) {
+      parsed.mistakes = {};
+    }
+    if (!isCourseProgress(parsed)) {
       return createEmptyProgress();
     }
-    return { ...(parsed as CourseProgress), mistakes: parsed.mistakes ?? {} };
+    return parsed;
   } catch {
     return createEmptyProgress();
   }

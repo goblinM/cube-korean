@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { CHAPTERS, COURSE_WORDS } from "./data/lessons/course";
 import { createLessonSession, createReviewSession, submitLessonAnswer } from "./features/lessons/session";
 import { countDueLessons, recommendLesson } from "./features/lessons/recommendation";
@@ -16,6 +16,7 @@ import {
 import { readLearningLocation, writeLearningLocation } from "./features/progress/learning-location";
 import { clearLearningCheckpoint, readLearningCheckpoint, writeLearningCheckpoint } from "./features/progress/learning-checkpoint";
 import { readLearningPreferences, writeLearningPreferences } from "./features/progress/learning-preferences";
+import { clearAllLearningData, createLearningBackup, restoreLearningBackup } from "./features/progress/learning-backup";
 import { speakKorean } from "./features/speech/korean-speech";
 import { composeHangul } from "./features/spelling/compose-hangul";
 import { followsTargetPrefix, isExactSpelling } from "./features/spelling/hangul";
@@ -43,6 +44,7 @@ const KEYS = [
 export default function Home() {
   const [started, setStarted] = useState(false);
   const [showMistakeBook, setShowMistakeBook] = useState(false);
+  const [showDataCenter, setShowDataCenter] = useState(false);
   const [practiceMode, setPracticeMode] = useState<"lesson" | "mistakes">("lesson");
   const [selectedChapterId, setSelectedChapterId] = useState(CHAPTERS[0].id);
   const [selectedLessonId, setSelectedLessonId] = useState(CHAPTERS[0].lessons[0].id);
@@ -62,7 +64,10 @@ export default function Home() {
   const [nativeKeyboard, setNativeKeyboard] = useState(true);
   const [muted, setMuted] = useState(false);
   const [speechUnavailable, setSpeechUnavailable] = useState(false);
+  const [backupMessage, setBackupMessage] = useState("");
+  const [resetArmed, setResetArmed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const backupInputRef = useRef<HTMLInputElement>(null);
   const chapter = CHAPTERS.find((candidate) => candidate.id === selectedChapterId) ?? CHAPTERS[0];
   const chapterIndex = CHAPTERS.findIndex((candidate) => candidate.id === chapter.id);
   const lessons = chapter.lessons;
@@ -247,6 +252,69 @@ export default function Home() {
     }
   }
 
+  function downloadLearningBackup() {
+    const content = createLearningBackup(window.localStorage, CHAPTERS);
+    const url = URL.createObjectURL(new Blob([content], { type: "application/json" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `cubekorean-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    setBackupMessage("备份已下载，请妥善保存文件。");
+    setResetArmed(false);
+  }
+
+  async function importLearningBackup(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      restoreLearningBackup(window.localStorage, CHAPTERS, await file.text());
+      window.location.reload();
+    } catch {
+      setBackupMessage("无法恢复：请选择由当前版本 CubeKorean 导出的有效备份。");
+      setResetArmed(false);
+    }
+  }
+
+  function resetLearningData() {
+    if (!resetArmed) {
+      setResetArmed(true);
+      setBackupMessage("此操作会清空本机进度和错词。请再次点击确认。");
+      return;
+    }
+    clearAllLearningData(window.localStorage);
+    window.location.reload();
+  }
+
+  if (!started && showDataCenter) {
+    const completionPercent = Math.round((completedLessons.length / TOTAL_LESSON_COUNT) * 100);
+    return (
+      <main className="data-page">
+        <header className="subpage-header">
+          <button className="back-button" onClick={() => { setShowDataCenter(false); setResetArmed(false); setBackupMessage(""); }}>← 返回课程</button>
+          <div className="brand"><span>ㅋ</span> CubeKorean</div>
+        </header>
+        <section className="data-shell">
+          <div className="eyebrow">LEARNING DATA</div>
+          <h1>学习数据</h1>
+          <p className="data-intro">学习记录保存在当前浏览器。定期下载备份，可以在清理浏览器数据或更换设备后恢复。</p>
+          <div className="data-stats">
+            <div><strong>{completedLessons.length}</strong><span>已完成关卡</span></div>
+            <div><strong>{Object.keys(progress.mistakes).length}</strong><span>待复习词</span></div>
+            <div><strong>{completionPercent}%</strong><span>课程完成度</span></div>
+          </div>
+          <div className="data-actions">
+            <article><span className="data-icon">↓</span><div><h2>下载学习备份</h2><p>保存通关记录、正确率、错词、学习位置和练习偏好。</p></div><button onClick={downloadLearningBackup}>下载备份</button></article>
+            <article><span className="data-icon">↑</span><div><h2>恢复学习备份</h2><p>选择 CubeKorean 导出的 JSON 文件，验证成功后替换本机数据。</p></div><button onClick={() => backupInputRef.current?.click()}>选择备份</button><input ref={backupInputRef} className="backup-file-input" type="file" accept="application/json,.json" onChange={importLearningBackup} /></article>
+            <article className="danger-zone"><span className="data-icon">×</span><div><h2>重置本机数据</h2><p>清空学习进度、错词、偏好和未完成练习，此操作无法撤销。</p></div><button onClick={resetLearningData}>{resetArmed ? "确认清空" : "重置数据"}</button></article>
+          </div>
+          <p className={`backup-message ${resetArmed ? "warning" : ""}`} role="status">{backupMessage}</p>
+        </section>
+      </main>
+    );
+  }
+
   if (!started && showMistakeBook) {
     return (
       <main className="mistake-page">
@@ -278,7 +346,7 @@ export default function Home() {
       <main className="map-page">
         <header className="brand-row">
           <div className="brand" aria-label="CubeKorean 首页"><span>ㅋ</span> CubeKorean</div>
-          <div className="header-actions"><button className="mistake-link" onClick={() => setShowMistakeBook(true)}>错词本 <b>{Object.keys(progress.mistakes).length}</b></button><span className="daily-status" aria-label={`今日完成 ${todayCompletedCount} 关`}><small>今日</small><strong>{todayCompletedCount}<em>关</em></strong></span><button className="avatar" aria-label="个人中心">안</button></div>
+          <div className="header-actions"><button className="mistake-link" onClick={() => setShowMistakeBook(true)}>错词本 <b>{Object.keys(progress.mistakes).length}</b></button><span className="daily-status" aria-label={`今日完成 ${todayCompletedCount} 关`}><small>今日</small><strong>{todayCompletedCount}<em>关</em></strong></span><button className="avatar" onClick={() => setShowDataCenter(true)} aria-label="打开学习数据">안</button></div>
         </header>
 
         <section className="hero">

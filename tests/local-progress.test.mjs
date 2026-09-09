@@ -75,3 +75,10 @@ test("round-trips valid storage and recovers from corrupt data", () => {
   assert.deepEqual(readProgress(memoryStorage("not-json")), createEmptyProgress());
   assert.deepEqual(readProgress(memoryStorage('{"version":2,"lessons":{}}')), createEmptyProgress());
 });
+
+test("rejects progress with malformed nested lesson data", () => {
+  const storage = memoryStorage({
+    [PROGRESS_STORAGE_KEY]: JSON.stringify({ version: 1, lessons: { broken: { attempts: "many" } }, mistakes: {} }),
+  });
+  assert.deepEqual(readProgress(storage), createEmptyProgress());
+});
