@@ -17,6 +17,7 @@ import { readLearningLocation, writeLearningLocation } from "./features/progress
 import { clearLearningCheckpoint, readLearningCheckpoint, writeLearningCheckpoint } from "./features/progress/learning-checkpoint";
 import { readLearningPreferences, writeLearningPreferences } from "./features/progress/learning-preferences";
 import { clearAllLearningData, createLearningBackup, restoreLearningBackup } from "./features/progress/learning-backup";
+import { calculateLearningStats } from "./features/progress/learning-stats";
 import { speakKorean } from "./features/speech/korean-speech";
 import { composeHangul } from "./features/spelling/compose-hangul";
 import { followsTargetPrefix, isExactSpelling } from "./features/spelling/hangul";
@@ -84,6 +85,7 @@ export default function Home() {
   const todayCompletedCount = completedLessons.filter((item) => new Date(item.completedAt).toLocaleDateString("zh-CN") === todayKey).length;
   const dueReviewCount = countDueLessons(progress);
   const recommendation = recommendLesson(CHAPTERS, progress);
+  const learningStats = calculateLearningStats(CHAPTERS, progress);
   const mistakeEntries = COURSE_WORDS.filter((entry) => {
     if (!progress.mistakes[entry.word.id]) return false;
     if (mistakeChapterFilter !== "all" && entry.chapterId !== mistakeChapterFilter) return false;
@@ -289,6 +291,7 @@ export default function Home() {
 
   if (!started && showDataCenter) {
     const completionPercent = Math.round((completedLessons.length / TOTAL_LESSON_COUNT) * 100);
+    const masteryTotal = Math.max(learningStats.completedLessons, 1);
     return (
       <main className="data-page">
         <header className="subpage-header">
@@ -300,10 +303,25 @@ export default function Home() {
           <h1>学习数据</h1>
           <p className="data-intro">学习记录保存在当前浏览器。定期下载备份，可以在清理浏览器数据或更换设备后恢复。</p>
           <div className="data-stats">
-            <div><strong>{completedLessons.length}</strong><span>已完成关卡</span></div>
+            <div><strong>{learningStats.learnedWords}</strong><span>累计学习词</span></div>
+            <div><strong>{learningStats.totalAttempts}</strong><span>累计练习次数</span></div>
+            <div><strong>{learningStats.averageAccuracy}%</strong><span>最近平均正确率</span></div>
             <div><strong>{Object.keys(progress.mistakes).length}</strong><span>待复习词</span></div>
-            <div><strong>{completionPercent}%</strong><span>课程完成度</span></div>
           </div>
+          <section className="insight-card">
+            <div className="section-heading"><div><small>MASTERY</small><h2>掌握度分布</h2></div><strong>{completionPercent}%<span>总课程</span></strong></div>
+            <div className="mastery-track" aria-label={`已掌握 ${learningStats.mastery.mastered} 关，熟悉 ${learningStats.mastery.familiar} 关，学习中 ${learningStats.mastery.learning} 关`}><i className="mastered" style={{ width: `${(learningStats.mastery.mastered / masteryTotal) * 100}%` }} /><i className="familiar" style={{ width: `${(learningStats.mastery.familiar / masteryTotal) * 100}%` }} /><i className="learning" style={{ width: `${(learningStats.mastery.learning / masteryTotal) * 100}%` }} /></div>
+            <div className="mastery-legend"><span><i className="mastered" />已掌握 {learningStats.mastery.mastered}</span><span><i className="familiar" />熟悉 {learningStats.mastery.familiar}</span><span><i className="learning" />学习中 {learningStats.mastery.learning}</span></div>
+          </section>
+          <section className="insight-card">
+            <div className="section-heading"><div><small>TOPICS</small><h2>主题进度</h2></div><span>{learningStats.completedLessons} / {TOTAL_LESSON_COUNT} 关</span></div>
+            <div className="chapter-progress-list">{learningStats.chapters.map((item) => <div className="chapter-progress-item" key={item.chapterId}><div><strong>{item.titleChinese}</strong><span>{item.completedLessons} / {item.totalLessons}</span></div><div className="chapter-progress-track"><i style={{ width: `${item.percent}%` }} /></div></div>)}</div>
+          </section>
+          <section className="insight-card">
+            <div className="section-heading"><div><small>RECENT</small><h2>最近学习</h2></div></div>
+            {learningStats.recent.length ? <div className="recent-list">{learningStats.recent.map((item) => <div key={`${item.completedAt}-${item.lessonTitle}`}><span><b>{item.lessonTitle}</b><small>{item.chapterTitle} · {new Date(item.completedAt).toLocaleDateString("zh-CN")}</small></span><strong>{item.accuracy}%</strong></div>)}</div> : <div className="empty-recent">完成第一关后，这里会显示最近学习记录。</div>}
+          </section>
+          <div className="data-section-title"><small>DATA</small><h2>备份与恢复</h2></div>
           <div className="data-actions">
             <article><span className="data-icon">↓</span><div><h2>下载学习备份</h2><p>保存通关记录、正确率、错词、学习位置和练习偏好。</p></div><button onClick={downloadLearningBackup}>下载备份</button></article>
             <article><span className="data-icon">↑</span><div><h2>恢复学习备份</h2><p>选择 CubeKorean 导出的 JSON 文件，验证成功后替换本机数据。</p></div><button onClick={() => backupInputRef.current?.click()}>选择备份</button><input ref={backupInputRef} className="backup-file-input" type="file" accept="application/json,.json" onChange={importLearningBackup} /></article>
