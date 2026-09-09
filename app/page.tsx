@@ -18,6 +18,14 @@ import { clearLearningCheckpoint, readLearningCheckpoint, writeLearningCheckpoin
 import { readLearningPreferences, writeLearningPreferences } from "./features/progress/learning-preferences";
 import { clearAllLearningData, createLearningBackup, restoreLearningBackup } from "./features/progress/learning-backup";
 import { calculateLearningStats } from "./features/progress/learning-stats";
+import {
+  createEmptyLearningActivity,
+  readDailyGoal,
+  readLearningActivity,
+  recordLearningActivity,
+  summarizeLearningActivity,
+  writeDailyGoal,
+} from "./features/progress/learning-activity";
 import { speakKorean } from "./features/speech/korean-speech";
 import { composeHangul } from "./features/spelling/compose-hangul";
 import { followsTargetPrefix, isExactSpelling } from "./features/spelling/hangul";
@@ -56,6 +64,8 @@ export default function Home() {
   const [mistakeChapterFilter, setMistakeChapterFilter] = useState("all");
   const [mistakeLessonFilter, setMistakeLessonFilter] = useState("all");
   const [progress, setProgress] = useState(createEmptyProgress);
+  const [activity, setActivity] = useState(createEmptyLearningActivity);
+  const [dailyGoal, setDailyGoal] = useState(1);
   const [session, setSession] = useState(() => createLessonSession(CHAPTERS[0].lessons[0].words.map((word) => word.id)));
   const [resultSaved, setResultSaved] = useState(false);
   const [answer, setAnswer] = useState("");
@@ -81,11 +91,10 @@ export default function Home() {
   const wordId = session.queue[session.position];
   const word = words.find((candidate) => candidate.id === wordId) ?? words[0] ?? CHAPTERS[0].lessons[0].words[0];
   const completedLessons = Object.values(progress.lessons);
-  const todayKey = new Date().toLocaleDateString("zh-CN");
-  const todayCompletedCount = completedLessons.filter((item) => new Date(item.completedAt).toLocaleDateString("zh-CN") === todayKey).length;
   const dueReviewCount = countDueLessons(progress);
   const recommendation = recommendLesson(CHAPTERS, progress);
   const learningStats = calculateLearningStats(CHAPTERS, progress);
+  const activitySummary = summarizeLearningActivity(activity);
   const mistakeEntries = COURSE_WORDS.filter((entry) => {
     if (!progress.mistakes[entry.word.id]) return false;
     if (mistakeChapterFilter !== "all" && entry.chapterId !== mistakeChapterFilter) return false;
@@ -98,6 +107,14 @@ export default function Home() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => setProgress(readProgress(window.localStorage)), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setActivity(readLearningActivity(window.localStorage));
+      setDailyGoal(readDailyGoal(window.localStorage));
+    }, 0);
     return () => window.clearTimeout(timer);
   }, []);
 
@@ -178,11 +195,15 @@ export default function Home() {
   useEffect(() => {
     if (session.phase !== "results" || resultSaved) return;
     const timer = window.setTimeout(() => {
-      const accuracy = Math.round((session.firstListenCorrect / words.length) * 100);
+      const accuracy = practiceMode === "mistakes"
+        ? Math.round(((words.length - session.mistakeIds.length) / words.length) * 100)
+        : Math.round((session.firstListenCorrect / words.length) * 100);
+      const completedAt = new Date();
+      setActivity(recordLearningActivity(window.localStorage, words.length, accuracy, completedAt));
       setProgress((current) => {
         const updated = practiceMode === "mistakes"
-          ? recordMistakeReview(current, session.originalWordIds, session.mistakeIds)
-          : recordLessonResult(current, lesson.id, accuracy, session.mistakeIds);
+          ? recordMistakeReview(current, session.originalWordIds, session.mistakeIds, completedAt.toISOString())
+          : recordLessonResult(current, lesson.id, accuracy, session.mistakeIds, completedAt.toISOString());
         writeProgress(window.localStorage, updated);
         return updated;
       });
@@ -292,6 +313,7 @@ export default function Home() {
   if (!started && showDataCenter) {
     const completionPercent = Math.round((completedLessons.length / TOTAL_LESSON_COUNT) * 100);
     const masteryTotal = Math.max(learningStats.completedLessons, 1);
+    const weeklyMax = Math.max(dailyGoal, ...activitySummary.days.map((day) => day.sessions));
     return (
       <main className="data-page">
         <header className="subpage-header">
@@ -307,7 +329,13 @@ export default function Home() {
             <div><strong>{learningStats.totalAttempts}</strong><span>累计练习次数</span></div>
             <div><strong>{learningStats.averageAccuracy}%</strong><span>最近平均正确率</span></div>
             <div><strong>{Object.keys(progress.mistakes).length}</strong><span>待复习词</span></div>
+            <div><strong>{activitySummary.streak}</strong><span>连续学习天数</span></div>
           </div>
+          <section className="insight-card weekly-card">
+            <div className="section-heading"><div><small>LAST 7 DAYS</small><h2>近七日学习</h2></div><label>每日目标<select value={dailyGoal} onChange={(event) => { const goal = Number(event.target.value); setDailyGoal(goal); writeDailyGoal(window.localStorage, goal); }}>{[1, 2, 3, 4, 5].map((goal) => <option key={goal} value={goal}>{goal} 轮</option>)}</select></label></div>
+            <div className="weekly-chart">{activitySummary.days.map((day) => <div key={day.key} className={day.isToday ? "today" : ""}><span><i style={{ height: `${Math.max(day.sessions ? 12 : 3, (day.sessions / weeklyMax) * 100)}%` }} /></span><b>{day.sessions}</b><small>{day.label}</small></div>)}</div>
+            <p className="goal-copy">今日已完成 <strong>{activitySummary.today.sessions}</strong> / {dailyGoal} 轮{activitySummary.today.sessions >= dailyGoal ? "，目标达成 ✓" : ""}</p>
+          </section>
           <section className="insight-card">
             <div className="section-heading"><div><small>MASTERY</small><h2>掌握度分布</h2></div><strong>{completionPercent}%<span>总课程</span></strong></div>
             <div className="mastery-track" aria-label={`已掌握 ${learningStats.mastery.mastered} 关，熟悉 ${learningStats.mastery.familiar} 关，学习中 ${learningStats.mastery.learning} 关`}><i className="mastered" style={{ width: `${(learningStats.mastery.mastered / masteryTotal) * 100}%` }} /><i className="familiar" style={{ width: `${(learningStats.mastery.familiar / masteryTotal) * 100}%` }} /><i className="learning" style={{ width: `${(learningStats.mastery.learning / masteryTotal) * 100}%` }} /></div>
@@ -364,7 +392,7 @@ export default function Home() {
       <main className="map-page">
         <header className="brand-row">
           <div className="brand" aria-label="CubeKorean 首页"><span>ㅋ</span> CubeKorean</div>
-          <div className="header-actions"><button className="mistake-link" onClick={() => setShowMistakeBook(true)}>错词本 <b>{Object.keys(progress.mistakes).length}</b></button><span className="daily-status" aria-label={`今日完成 ${todayCompletedCount} 关`}><small>今日</small><strong>{todayCompletedCount}<em>关</em></strong></span><button className="avatar" onClick={() => setShowDataCenter(true)} aria-label="打开学习数据">안</button></div>
+          <div className="header-actions"><button className="mistake-link" onClick={() => setShowMistakeBook(true)}>错词本 <b>{Object.keys(progress.mistakes).length}</b></button><span className="daily-status" aria-label={`今日完成 ${activitySummary.today.sessions} 轮，目标 ${dailyGoal} 轮`}><small>今日</small><strong>{activitySummary.today.sessions}<em>/{dailyGoal}轮</em></strong></span><button className="avatar" onClick={() => setShowDataCenter(true)} aria-label="打开学习数据">안</button></div>
         </header>
 
         <section className="hero">
