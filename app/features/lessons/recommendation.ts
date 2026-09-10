@@ -13,6 +13,14 @@ export function countDueLessons(progress: CourseProgress, now = new Date()): num
   return Object.values(progress.lessons).filter((lesson) => isReviewDue(lesson, now)).length;
 }
 
+/** 返回主题内最靠前的可学习未完成关卡；全部完成时停留在最后一关。 */
+export function findChapterContinueLessonId(chapter: Chapter, progress: CourseProgress): string {
+  const lessonIds = chapter.lessons.map((lesson) => lesson.id);
+  const nextLesson = chapter.lessons.find((lesson) =>
+    !progress.lessons[lesson.id] && isLessonUnlocked(lessonIds, lesson.id, progress));
+  return nextLesson?.id ?? chapter.lessons.at(-1)?.id ?? "";
+}
+
 /** 优先推荐最早到期的复习关卡，否则返回课程顺序中的第一个可学习未完成关卡。 */
 export function recommendLesson(
   chapters: Chapter[],

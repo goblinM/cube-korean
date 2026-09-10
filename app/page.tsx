@@ -12,7 +12,7 @@ import {
   submitLessonAnswer,
   summarizeLessonSession,
 } from "./features/lessons/session";
-import { countDueLessons, recommendLesson } from "./features/lessons/recommendation";
+import { countDueLessons, findChapterContinueLessonId, recommendLesson } from "./features/lessons/recommendation";
 import { selectWeakWordIds } from "./features/lessons/weak-review";
 import {
   createEmptyProgress,
@@ -245,6 +245,12 @@ export default function Home() {
     window.setTimeout(() => inputRef.current?.focus(), 100);
   }
 
+  function selectChapter(chapterId: string) {
+    const targetChapter = CHAPTERS.find((candidate) => candidate.id === chapterId) ?? CHAPTERS[0];
+    setSelectedChapterId(targetChapter.id);
+    setSelectedLessonId(findChapterContinueLessonId(targetChapter, progress));
+  }
+
   function startMistakeReview(wordIds: string[]) {
     if (!wordIds.length) return;
     setPracticeMode("mistakes");
@@ -455,10 +461,10 @@ export default function Home() {
 
           <div className="lesson-map">
             <div className="chapter-switcher" aria-label="选择大关卡">
-              <button className="chapter-arrow" disabled={chapterIndex <= 0} onClick={() => { const item = CHAPTERS[chapterIndex - 1]; setSelectedChapterId(item.id); setSelectedLessonId(item.lessons[0].id); }} aria-label="上一个大关卡">←</button>
+              <button className="chapter-arrow" disabled={chapterIndex <= 0} onClick={() => selectChapter(CHAPTERS[chapterIndex - 1].id)} aria-label="上一个大关卡">←</button>
               <div className="chapter-current"><span>{LESSON_ICONS[chapter.id]?.[0] ?? "✦"}</span><div><small>主题 {chapterIndex + 1} / {CHAPTERS.length}</small><strong>{chapter.titleChinese}</strong><em>{chapter.titleKorean}</em></div></div>
-              <select value={chapter.id} onChange={(event) => { const item = CHAPTERS.find((candidate) => candidate.id === event.target.value) ?? CHAPTERS[0]; setSelectedChapterId(item.id); setSelectedLessonId(item.lessons[0].id); }} aria-label="选择生活主题">{CHAPTERS.map((item, index) => <option value={item.id} key={item.id}>主题 {index + 1} · {item.titleChinese}</option>)}</select>
-              <button className="chapter-arrow" disabled={chapterIndex >= CHAPTERS.length - 1} onClick={() => { const item = CHAPTERS[chapterIndex + 1]; setSelectedChapterId(item.id); setSelectedLessonId(item.lessons[0].id); }} aria-label="下一个大关卡">→</button>
+              <select value={chapter.id} onChange={(event) => selectChapter(event.target.value)} aria-label="选择生活主题">{CHAPTERS.map((item, index) => <option value={item.id} key={item.id}>主题 {index + 1} · {item.titleChinese}</option>)}</select>
+              <button className="chapter-arrow" disabled={chapterIndex >= CHAPTERS.length - 1} onClick={() => selectChapter(CHAPTERS[chapterIndex + 1].id)} aria-label="下一个大关卡">→</button>
             </div>
             <div className="cube-wrap" aria-hidden="true">
               <div className="cube">
