@@ -1,6 +1,7 @@
 export type LessonPhase = "copy" | "listen" | "retry" | "results";
 
 export const LESSON_GROUP_SIZE = 5;
+export const SPELLING_REVEAL_ERROR_LIMIT = 2;
 
 export type LessonSession = {
   phase: LessonPhase;
@@ -101,9 +102,10 @@ export function advanceLessonGroup(session: LessonSession): LessonSession {
   };
 }
 
-/** 仅在听写或错词重练中连续答错三次后显示当前单词，避免看词阶段重复提示。 */
+/** 仅在听写或错词重练中连续答错两次后显示当前单词，避免看词阶段重复提示。 */
 export function shouldRevealSpelling(session: LessonSession): boolean {
-  return (session.phase === "listen" || session.phase === "retry") && session.currentErrorCount >= 3;
+  return (session.phase === "listen" || session.phase === "retry")
+    && session.currentErrorCount >= SPELLING_REVEAL_ERROR_LIMIT;
 }
 
 /** 记录当前答案；错误时停留并登记错词，正确时推进下一题或切换听写、重练和结果阶段。 */

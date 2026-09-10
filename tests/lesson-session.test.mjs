@@ -6,6 +6,7 @@ import {
   createLessonSession,
   createReviewSession,
   hasNextLessonGroup,
+  SPELLING_REVEAL_ERROR_LIMIT,
   shouldRevealSpelling,
   submitLessonAnswer,
   summarizeLessonSession,
@@ -60,16 +61,14 @@ test("starts mistake review in dictation mode and remembers failed review words"
   assert.deepEqual(session.mistakeIds, ["coffee"]);
 });
 
-test("reveals a dictation spelling after three errors and resets for the next word", () => {
+test("reveals a dictation spelling on the second error and resets for the next word", () => {
+  assert.equal(SPELLING_REVEAL_ERROR_LIMIT, 2);
   let session = createReviewSession(["coffee", "beer"]);
   session = submitLessonAnswer(session, "coffee", false);
   assert.equal(session.currentErrorCount, 1);
   assert.equal(shouldRevealSpelling(session), false);
   session = submitLessonAnswer(session, "coffee", false);
   assert.equal(session.currentErrorCount, 2);
-  assert.equal(shouldRevealSpelling(session), false);
-  session = submitLessonAnswer(session, "coffee", false);
-  assert.equal(session.currentErrorCount, 3);
   assert.equal(shouldRevealSpelling(session), true);
   session = submitLessonAnswer(session, "coffee", true);
   assert.equal(session.currentErrorCount, 0);
@@ -78,7 +77,6 @@ test("reveals a dictation spelling after three errors and resets for the next wo
 
 test("does not reveal spelling during the copy phase", () => {
   let session = createLessonSession(["coffee"]);
-  session = submitLessonAnswer(session, "coffee", false);
   session = submitLessonAnswer(session, "coffee", false);
   session = submitLessonAnswer(session, "coffee", false);
   assert.equal(shouldRevealSpelling(session), false);

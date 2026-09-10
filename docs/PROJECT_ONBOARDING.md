@@ -37,7 +37,7 @@ app/page.tsx Home
   ↓ 点击“开始本关”设置 started
 当前小关卡选择20个词，并按5词拆为4组
   ↓
-每组依次完成看词 copy / 听音 listen / 错词 retry；听写单词连续错3次后提示答案
+每组依次完成看词 copy / 听音 listen / 错词 retry；听写单词第一次答错提示 `1/2`，第二次答错提示 `2/2` 并显示答案
   ↓
 features/spelling/hangul.ts 判断IME输入
   ↓

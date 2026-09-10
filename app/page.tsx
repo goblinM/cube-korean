@@ -8,6 +8,7 @@ import {
   createLessonSession,
   createReviewSession,
   hasNextLessonGroup,
+  SPELLING_REVEAL_ERROR_LIMIT,
   shouldRevealSpelling,
   submitLessonAnswer,
   summarizeLessonSession,
@@ -294,10 +295,10 @@ export default function Home() {
       }
       setSession((current) => submitLessonAnswer(current, word.id, false));
       const nextErrorCount = session.currentErrorCount + 1;
-      setMessage(session.phase !== "copy" && nextErrorCount >= 3
-        ? "已显示答案，请重新输入正确拼写"
+      setMessage(session.phase !== "copy" && nextErrorCount >= SPELLING_REVEAL_ERROR_LIMIT
+        ? `已显示答案（${SPELLING_REVEAL_ERROR_LIMIT}/${SPELLING_REVEAL_ERROR_LIMIT}），请重新输入正确拼写`
         : session.phase !== "copy"
-          ? `再听一次，修改红色的位置（${nextErrorCount}/3）`
+          ? `再听一次，修改红色的位置（${nextErrorCount}/${SPELLING_REVEAL_ERROR_LIMIT}）`
           : "修改红色的位置后再检查");
       if (!muted && !speakKorean(word.korean)) setSpeechUnavailable(true);
     }
@@ -600,7 +601,7 @@ export default function Home() {
         />
 
         <div className="translation"><strong>{word.chinese}</strong>{showEnglish && <span>{word.english}</span>}</div>
-        {revealSpelling && <div className="answer-reveal" role="status"><span>提示答案</span><strong lang="ko">{word.korean}</strong><small>重新拼写正确后继续</small></div>}
+        {revealSpelling && <div className="answer-reveal" role="status"><span>提示答案 · {SPELLING_REVEAL_ERROR_LIMIT}/{SPELLING_REVEAL_ERROR_LIMIT}</span><strong lang="ko">{word.korean}</strong><small>重新拼写正确后继续</small></div>}
         <p aria-live="polite" className={`feedback ${answer && !isExactSpelling(answer, word.korean) ? "error" : ""}`}>{message || (isCopyPhase ? "照着上面的韩文输入一遍" : session.phase === "retry" ? "重新写对这个听写错词" : "根据读音写出这个单词")}</p>
       </section>
 
