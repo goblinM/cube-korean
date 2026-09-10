@@ -207,6 +207,12 @@ export default function Home() {
   }, [started, word.korean, session.phase, muted]);
 
   useEffect(() => {
+    if (!started || !nativeKeyboard || session.phase === "results") return;
+    const timer = window.setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 0);
+    return () => window.clearTimeout(timer);
+  }, [nativeKeyboard, session.phase, session.position, started]);
+
+  useEffect(() => {
     if (session.phase !== "results" || resultSaved || hasNextGroup) return;
     const timer = window.setTimeout(() => {
       const summary = summarizeLessonSession(session);
@@ -549,7 +555,12 @@ export default function Home() {
   const groupTotal = session.groupSize ? Math.ceil(session.allWordIds.length / session.groupSize) : 1;
 
   return (
-    <main className="practice-page">
+    <main
+      className="practice-page"
+      onClickCapture={() => {
+        if (nativeKeyboard) inputRef.current?.focus({ preventScroll: true });
+      }}
+    >
       <header className="practice-header">
         <button className="icon-button" onClick={() => setStarted(false)} aria-label="退出练习">×</button>
         <div className="progress-track" role="progressbar" aria-label="本轮学习进度" aria-valuemin={0} aria-valuemax={session.queue.length} aria-valuenow={session.position + 1}><span style={{ width: `${lessonProgressPercent}%` }} /></div>

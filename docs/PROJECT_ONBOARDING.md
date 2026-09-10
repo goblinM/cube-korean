@@ -30,6 +30,8 @@ Node.js >=22.13.0 → npm install → npm run dev
 | Worker入口 | `worker/index.ts` | 将请求交给Vinext App Router，并处理图片优化 |
 | 部署构建 | `vite.config.ts` | 组合Vinext、Sites和Cloudflare插件 |
 
+练习页的隐藏输入框承接系统韩语键盘输入；进入练习、切换单词或点击练习页其他区域后，页面会重新聚焦该输入框并保持当前滚动位置。
+
 ## 4. 当前核心链路
 
 ```text
