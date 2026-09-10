@@ -5,10 +5,10 @@
 - 类型：Web前端应用；
 - 运行：React 19 + TypeScript + Vinext/Vite；
 - 部署：Cloudflare Worker兼容输出，通过Sites发布；
-- 发音：优先播放随站点发布的预生成MP3，资源失败时回退浏览器Web Speech；P17-A待Azure配置后生成首批20词音频；
+- 发音：2000词均使用随站点发布的预生成MP3并按 `1.1×` 播放，资源失败时回退浏览器Web Speech；
 - 数据：十大生活主题共100关×20词位于 `app/data/lessons/`，由 `course.ts` 建立跨关卡索引；迁移词条保留稳定ID；
 - 持久化：`app/features/progress/local-progress.ts` 通过版本化 `localStorage` 保存关卡进度、掌握度、复习时间与逐词错误记录；
-- 后端和数据库：MVP不启用，`.openai/hosting.json` 中D1/R2均为空。
+- 后端和数据库：MVP不启用，`.openai/hosting.json` 中D1/R2均为空；未保留D1/Drizzle示例与依赖，需要服务端状态时先新增架构决策。
 
 ## 目标模块边界
 

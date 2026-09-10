@@ -12,15 +12,19 @@
 
 # testing
 /coverage
+/.eslintcache
 
 # next.js
 /.next/
 /.vinext/
 /out/
+*.tsbuildinfo
 
 # misc
 .DS_Store
+._*
 *.pem
+*.swp
 
 # debug
 npm-debug.log*
@@ -30,9 +34,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
-.env.local
 !.env.example
 .audio.env
+.dev.vars*
 
 # vercel
 .vercel
@@ -41,3 +45,9 @@ yarn-error.log*
 /.wrangler/
 /outputs/
 /work/
+/app/_sites-preview/
+/public/audio/ko/*.tmp
+
+# local editor settings
+/.idea/
+/.vscode/
