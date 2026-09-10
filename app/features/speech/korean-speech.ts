@@ -2,6 +2,7 @@ type KoreanUtterance = { lang: string; rate: number; onend?: () => void; onerror
 type KoreanAudio = {
   src: string;
   preload: string;
+  playbackRate: number;
   currentTime: number;
   pause: () => void;
   play: () => Promise<void> | void;
@@ -16,6 +17,7 @@ let activeUtterance: KoreanUtterance | undefined;
 let activeAudio: KoreanAudio | undefined;
 let activeAudioConstructor: SpeechEnvironment["Audio"];
 let playbackRequestId = 0;
+export const KOREAN_AUDIO_PLAYBACK_RATE = 1.1;
 
 /** 将稳定词条ID映射为随站点发布的共享韩语音频地址。 */
 export function koreanAudioUrl(wordId: string): string {
@@ -29,7 +31,7 @@ export function speakKorean(text: string, environment = globalThis as unknown as
   try {
     const utterance = new environment.SpeechSynthesisUtterance(text);
     utterance.lang = "ko-KR";
-    utterance.rate = 0.78;
+    utterance.rate = 0.9;
     // Safari和Chrome可能在异步播放开始前回收局部utterance，保留引用直到播放结束。
     activeUtterance = utterance;
     utterance.onend = () => { if (activeUtterance === utterance) activeUtterance = undefined; };
@@ -61,6 +63,7 @@ export async function playKorean(
       activeAudio.currentTime = 0;
     }
     activeAudio.preload = "auto";
+    activeAudio.playbackRate = KOREAN_AUDIO_PLAYBACK_RATE;
     activeAudio.src = koreanAudioUrl(wordId);
     await Promise.resolve(activeAudio.play());
     return true;
