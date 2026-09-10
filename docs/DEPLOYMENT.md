@@ -97,3 +97,4 @@ npm run deploy:preview
 - 页面可打开但静态资源失败：确认构建产物同时包含 `dist/server` 与 `dist/client`。
 - 自定义域名 Pending：检查 `Domains` 中的域名状态和 DNS 冲突记录，等待证书签发后再重试。
 - 推送后没有构建：确认提交已进入 `main`，并检查项目的 Git repository 与 Build watch paths。
+- Cloudflare 显示 Git 账户已断开：在项目 `Settings → Builds` 点击 `Manage`，前往 GitHub 重新确认 Cloudflare Workers and Pages App 的访问权限；确认 `cube-korean` 仍在授权仓库列表后返回并刷新。
