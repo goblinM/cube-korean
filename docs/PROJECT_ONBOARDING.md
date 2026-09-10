@@ -47,7 +47,7 @@ features/lessons/session.ts 推进组内阶段，汇总四组正确率与错词�
   ↓
 features/progress/local-progress.ts 首次听写错误即时收录，整关完成后保存结果并解锁下一关
   ↓
-speak 调用 SpeechSynthesisUtterance(ko-KR)
+speak 优先选择设备中的 ko-KR 音色，并以0.9语速调用 SpeechSynthesisUtterance
 ```
 
 UI编排仍集中在一个组件中；拼写规则、学习会话及课程数据已经拆出。后续目标见 `ARCHITECTURE.md`。
