@@ -3,7 +3,7 @@
 - 状态：已确认；2000词音频已生成并通过自动完整性校验，等待跨主题抽听与最终浏览器回归
 - 日期：2026-09-10
 - 目标版本：P17
-- 推荐方案：Azure Speech F0 离线批量生成 + Sites 静态音频托管
+- 推荐方案：Azure Speech F0 离线批量生成 + Cloudflare 静态音频托管
 
 ## 1. 背景与结论
 
@@ -17,7 +17,7 @@
 Azure Speech REST API
   ↓
 public/audio/ko/{wordId}.mp3 + 音频清单
-  ↓ 随 Sites 发布
+  ↓ 随 Cloudflare 部署发布
 浏览器 HTMLAudioElement 播放
   ↓ 资源缺失时
 Web Speech 备用 → 明确的不可用提示

@@ -53,4 +53,4 @@ npm run audio:pilot
 
 ## 发布
 
-项目使用 `.openai/hosting.json` 声明Sites项目绑定。发布属于外部状态变更，应先完成构建验证并按Sites工作流保存、部署已验证版本。不得在文档中保存仓库凭证或Token。
+项目由GitHub仓库触发Cloudflare部署，构建不依赖 `.openai/hosting.json`。发布前应先完成构建验证；仓库凭证、Cloudflare Token和本机配置不得写入代码或文档。

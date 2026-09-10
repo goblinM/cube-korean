@@ -29,7 +29,7 @@ Node.js >=22.13.0 → npm install → npm run dev
 | 页面样式 | `app/globals.css` | 地图、练习页和响应式布局 |
 | 根布局 | `app/layout.tsx` | 页面语言、字体和元数据 |
 | Worker入口 | `worker/index.ts` | 将请求交给Vinext App Router，并处理图片优化 |
-| 部署构建 | `vite.config.ts` | 组合Vinext、Sites和Cloudflare插件 |
+| 部署构建 | `vite.config.ts` | 组合Vinext与Cloudflare插件 |
 
 练习页的隐藏输入框承接系统韩语键盘输入；进入练习、切换单词或点击练习页其他区域后，页面会重新聚焦该输入框并保持当前滚动位置。
 
@@ -61,11 +61,11 @@ UI编排仍集中在一个组件中；拼写规则、学习会话及课程数据
 | 课程词汇 | `app/data/lessons/` | `tests/course-validation.test.mjs` | `PRD.md`、`MVP.md` |
 | 练习流程 | `Home`、`submit`、`nextWord` | 两轮、错词、结束状态 | `ARCHITECTURE.md` |
 | 样式与移动端 | `app/globals.css` | 手机与桌面人工回归 | 必要时 `CHANGELOG.md` |
-| 部署 | `.openai/hosting.json`、`vite.config.ts` | `npm run build` | `DEVELOPMENT.md` |
+| 部署 | `vite.config.ts`、Cloudflare项目配置 | `npm run build` | `DEVELOPMENT.md` |
 
 ## 6. 数据与配置
 
-当前课程数据位于 `app/data/lessons/`，网站运行时没有业务环境变量、数据库、缓存或外部API。`.openai/hosting.json` 仅记录Sites项目及空D1/R2绑定，并且必须纳入版本控制。Azure只在发布前生成静态音频时通过被忽略的 `.audio.env` 使用；浏览器播放不可用时必须安全返回，不能阻断练习。
+当前课程数据位于 `app/data/lessons/`，网站运行时没有业务环境变量、数据库、缓存或外部API。GitHub仓库不保存 `.openai/hosting.json`，Cloudflare从仓库构建时也不依赖它。Azure只在发布前生成静态音频时通过被忽略的 `.audio.env` 使用；浏览器播放不可用时必须安全返回，不能阻断练习。
 
 ## 7. 安全修改流程
 

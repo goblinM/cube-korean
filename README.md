@@ -3,7 +3,7 @@
 CubeKorean 是面向具备少量韩语基础学习者的生活词汇拼写网站。产品通过魔方关卡组织内容，以“看词拼写 → 听音拼写 → 错词重练”强化声音、含义与韩文拼写之间的联系。
 
 - 项目类型：Web 前端应用
-- 技术栈：React 19、TypeScript、Vinext、Vite、Cloudflare Workers/Sites、预生成韩语MP3
+- 技术栈：React 19、TypeScript、Vinext、Vite、Cloudflare Workers、预生成韩语MP3
 - 创建日期：2026-09-03
 - 当前状态：十大生活主题课程已完成，共100关×20词、2000词，并已接入共享韩语音频、错词本和专项复习
 

@@ -47,6 +47,7 @@ yarn-error.log*
 /work/
 /app/_sites-preview/
 /public/audio/ko/*.tmp
+/.openai/hosting.json
 
 # local editor settings
 /.idea/
