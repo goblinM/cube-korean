@@ -47,7 +47,7 @@ features/lessons/session.ts 推进组内阶段，汇总四组正确率与错词�
   ↓
 features/progress/local-progress.ts 首次听写错误即时收录，整关完成后保存结果并解锁下一关
   ↓
-speak 调用 SpeechSynthesisUtterance(ko-KR)
+speak 恢复浏览器语音控制器后调用 SpeechSynthesisUtterance(ko-KR)，不在每次播放前清空语音队列
 ```
 
 UI编排仍集中在一个组件中；拼写规则、学习会话及课程数据已经拆出。后续目标见 `ARCHITECTURE.md`。
