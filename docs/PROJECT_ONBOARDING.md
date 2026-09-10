@@ -61,11 +61,11 @@ UI编排仍集中在一个组件中；拼写规则、学习会话及课程数据
 | 课程词汇 | `app/data/lessons/` | `tests/course-validation.test.mjs` | `PRD.md`、`MVP.md` |
 | 练习流程 | `Home`、`submit`、`nextWord` | 两轮、错词、结束状态 | `ARCHITECTURE.md` |
 | 样式与移动端 | `app/globals.css` | 手机与桌面人工回归 | 必要时 `CHANGELOG.md` |
-| 部署 | `vite.config.ts`、Cloudflare项目配置 | `npm run build` | `DEVELOPMENT.md` |
+| 部署 | `package.json`、`vite.config.ts`、`docs/DEPLOYMENT.md` | `npm test`、Cloudflare构建状态 | `DEVELOPMENT.md`、`DEPLOYMENT.md` |
 
 ## 6. 数据与配置
 
-当前课程数据位于 `app/data/lessons/`，网站运行时没有业务环境变量、数据库、缓存或外部API。GitHub仓库不保存 `.openai/hosting.json`，Cloudflare从仓库构建时也不依赖它。Azure只在发布前生成静态音频时通过被忽略的 `.audio.env` 使用；浏览器播放不可用时必须安全返回，不能阻断练习。
+当前课程数据位于 `app/data/lessons/`，网站运行时没有业务环境变量、数据库、缓存或外部API。生产环境通过 GitHub `main` 自动部署到 Cloudflare Workers，具体配置见 `DEPLOYMENT.md`；GitHub仓库不保存 `.openai/hosting.json`，Cloudflare从仓库构建时也不依赖它。Azure只在发布前生成静态音频时通过被忽略的 `.audio.env` 使用；浏览器播放不可用时必须安全返回，不能阻断练习。
 
 ## 7. 安全修改流程
 
