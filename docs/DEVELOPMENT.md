@@ -4,7 +4,7 @@
 
 - Node.js：`>=22.13.0`
 - 包管理器：npm
-- 当前未要求业务环境变量
+- 网站运行不要求业务环境变量；只有发布前生成韩语MP3时需要临时提供 `AZURE_SPEECH_REGION` 和 `AZURE_SPEECH_KEY`
 
 ## 安装与运行
 
@@ -26,6 +26,22 @@ npm test
 - `npm run build` 是当前已验证的最小构建检查；
 - `npm run lint` 检查TypeScript、React和可访问性规则；
 - `npm test` 会先构建，再运行 `tests/*.test.mjs`；当前测试覆盖页面渲染、三套课程结构、韩语拼写与音节组合、TTS降级、学习会话、错词复习、顺序解锁、掌握度和本机持久化。
+
+## 韩语音频生成
+
+先检查首关20词，不调用Azure：
+
+```bash
+npm run audio:pilot:dry
+```
+
+确认Azure Speech F0资源后，将 `.env.example` 复制为不会提交、也不会被Vite加载的 `.audio.env`，填写资源区域和密钥，再生成20词试音：
+
+```bash
+npm run audio:pilot
+```
+
+生成工具只读取环境变量，不在项目中保存密钥。20词人工审音通过前不要运行 `npm run audio:all`。详细验收和回滚方式见 `AUDIO_INTEGRATION_PLAN.md`。
 
 ## 调试顺序
 

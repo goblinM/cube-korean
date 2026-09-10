@@ -38,7 +38,7 @@ import {
   summarizeLearningActivity,
   writeDailyGoal,
 } from "./features/progress/learning-activity";
-import { speakKorean } from "./features/speech/korean-speech";
+import { playKorean } from "./features/speech/korean-speech";
 import { composeHangul } from "./features/spelling/compose-hangul";
 import { followsTargetPrefix, isExactSpelling } from "./features/spelling/hangul";
 
@@ -201,10 +201,12 @@ export default function Home() {
   useEffect(() => {
     if (!started || muted || session.phase === "results") return;
     const timer = window.setTimeout(() => {
-      if (!speakKorean(word.korean)) setSpeechUnavailable(true);
+      void playKorean(word.id, word.korean).then((played) => {
+        if (!played) setSpeechUnavailable(true);
+      });
     }, 280);
     return () => window.clearTimeout(timer);
-  }, [started, word.korean, session.phase, muted]);
+  }, [started, word.id, word.korean, session.phase, muted]);
 
   useEffect(() => {
     if (!started || !nativeKeyboard || session.phase === "results") return;
@@ -306,7 +308,11 @@ export default function Home() {
         : session.phase !== "copy"
           ? `再听一次，修改红色的位置（${nextErrorCount}/${SPELLING_REVEAL_ERROR_LIMIT}）`
           : "修改红色的位置后再检查");
-      if (!muted && !speakKorean(word.korean)) setSpeechUnavailable(true);
+      if (!muted) {
+        void playKorean(word.id, word.korean).then((played) => {
+          if (!played) setSpeechUnavailable(true);
+        });
+      }
     }
   }
 
@@ -576,7 +582,9 @@ export default function Home() {
           disabled={speechUnavailable}
           onClick={(event) => {
             event.stopPropagation();
-            if (!speakKorean(word.korean)) setSpeechUnavailable(true);
+            void playKorean(word.id, word.korean).then((played) => {
+              if (!played) setSpeechUnavailable(true);
+            });
           }}
           aria-label={speechUnavailable ? "韩语发音不可用" : "播放韩语发音"}
         >▶<span>{speechUnavailable ? "发音不可用" : "听发音"}</span></button>

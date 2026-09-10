@@ -23,7 +23,8 @@ Node.js >=22.13.0 → npm install → npm run dev
 | 学习会话 | `app/features/lessons/session.ts` | 看词、听写、错词重练与结果阶段切换 |
 | 续学推荐 | `app/features/lessons/recommendation.ts` | 全局今日推荐与主题内最近未完成关卡定位 |
 | 本机进度 | `app/features/progress/local-progress.ts` | 读取、校验和更新完成记录、掌握度及复习日期 |
-| 发音适配 | `app/features/speech/korean-speech.ts` | 韩语TTS调用和无语音环境降级 |
+| 发音适配 | `app/features/speech/korean-speech.ts` | 预生成静态MP3播放、浏览器TTS备用和无语音环境降级 |
+| 音频生成 | `tools/generate-korean-audio.mjs` | 发布前使用Azure Speech生成共享静态MP3和资源清单 |
 | 课程数据 | `app/data/lessons/` | 三个大关卡、跨课程词汇索引及结构校验 |
 | 页面样式 | `app/globals.css` | 地图、练习页和响应式布局 |
 | 根布局 | `app/layout.tsx` | 页面语言、字体和元数据 |
@@ -47,7 +48,7 @@ features/lessons/session.ts 推进组内阶段，汇总四组正确率与错词�
   ↓
 features/progress/local-progress.ts 首次听写错误即时收录，整关完成后保存结果并解锁下一关
   ↓
-speak 恢复浏览器语音控制器后调用 SpeechSynthesisUtterance(ko-KR)，不在每次播放前清空语音队列
+playKorean优先播放 `/audio/ko/{wordId}.mp3`，资源失败时回退SpeechSynthesisUtterance(ko-KR)
 ```
 
 UI编排仍集中在一个组件中；拼写规则、学习会话及课程数据已经拆出。后续目标见 `ARCHITECTURE.md`。
@@ -64,7 +65,7 @@ UI编排仍集中在一个组件中；拼写规则、学习会话及课程数据
 
 ## 6. 数据与配置
 
-当前课程数据位于 `app/data/lessons/`，没有业务环境变量、数据库、缓存或外部API。`.openai/hosting.json` 仅记录Sites项目及空D1/R2绑定。浏览器TTS不可用时必须安全返回，不能阻断练习。
+当前课程数据位于 `app/data/lessons/`，网站运行时没有业务环境变量、数据库、缓存或外部API。`.openai/hosting.json` 仅记录Sites项目及空D1/R2绑定。Azure只在发布前生成静态音频时通过本机环境变量使用；浏览器播放不可用时必须安全返回，不能阻断练习。
 
 ## 7. 安全修改流程
 
@@ -81,7 +82,7 @@ UI编排仍集中在一个组件中；拼写规则、学习会话及课程数据
 |---|---|---|
 | `app/page.tsx` | 学习状态、UI与TTS仍耦合，局部变量错误可能导致关卡崩溃 | 补交互测试并保持小步拆分 |
 | `app/features/spelling/hangul.ts` | 复合元音、双收音和IME中间态复杂 | 扩展表格化用例后再修改 |
-| 浏览器TTS | 跨设备声音和可用性不一致 | 设计无TTS回退 |
+| 韩语音频 | 静态资源覆盖、浏览器自动播放策略和异常发音 | 校验音频清单、人工审音并保留非阻塞回退 |
 
 ## 9. 当前开发入口
 

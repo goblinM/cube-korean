@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "voice": "ko-KR-SunHiNeural",
+  "format": "audio-24khz-48kbitrate-mono-mp3",
+  "generatedAt": "2026-09-10T09:53:51.995Z",
+  "items": {
+    "coffee": {
+      "text": "커피",
+      "sourceHash": "04f4e7d108c85881c3aedd9a1157972a20dbac9732ccdec22161e50c80028b09",
+      "path": "/audio/ko/coffee.mp3"
+    },
+    "water": {
+      "text": "물",
+      "sourceHash": "ede451d59e98a3593c4c8347cc7964c1dc021005d97fe0714c6977ba45fc0433",
+      "path": "/audio/ko/water.mp3"
+    },
+    "milk": {
+      "text": "우유",
+      "sourceHash": "9f4f1ee07a9b75555e7926182a30471fde4f991ef7bf4244a19b707b7bc62cfd",
+      "path": "/audio/ko/milk.mp3"
+    },
+    "juice": {
+      "text": "주스",
+      "sourceHash": "f60935e7c51d10de637184bb21d53d727bc0fc940b38dda41fda300f306b047a",
+      "path": "/audio/ko/juice.mp3"
+    },
+    "tea": {
+      "text": "차",
+      "sourceHash": "7b11780a61242613918f3a460c9a3b296d10c8a3b2e5a20255953ebaa7b151ce",
+      "path": "/audio/ko/tea.mp3"
+    },
+    "green-tea": {
+      "text": "녹차",
+      "sourceHash": "3a7019cab8e24caed735c26d7019865c8e6a4a62454cabd78ab54456d11c67e5",
+      "path": "/audio/ko/green-tea.mp3"
+    },
+    "black-tea": {
+      "text": "홍차",
+      "sourceHash": "bdbb4411e46f8406fe4b450ccf0e262885b53e82bbdc5ad408684aa9efeba2f5",
+      "path": "/audio/ko/black-tea.mp3"
+    },
+    "cola": {
+      "text": "콜라",
+      "sourceHash": "af9092d61d3b92c06991363d7cb1ff03f8ba39955e3c0720a83c5726b15ca837",
+      "path": "/audio/ko/cola.mp3"
+    },
+    "soda": {
+      "text": "탄산음료",
+      "sourceHash": "c413749826c8919e0928e71956083dc342b8e514a7dc5fe0de91b881df56f0a6",
+      "path": "/audio/ko/soda.mp3"
+    },
+    "beer": {
+      "text": "맥주",
+      "sourceHash": "5ba761e729f1ebd153beb6fc84aacee861c41e84c0e2465dceee8c7e7582ebf1",
+      "path": "/audio/ko/beer.mp3"
+    },
+    "wine": {
+      "text": "와인",
+      "sourceHash": "b59c925a356f06d9312db1d3ec7dae0cec4c5655f5266ba238b92c4cc168acf5",
+      "path": "/audio/ko/wine.mp3"
+    },
+    "soju": {
+      "text": "소주",
+      "sourceHash": "83028a231e26b8d0dd0db4fe2773bb1d6d5d78b0890cba7dc07f6d817a8465b8",
+      "path": "/audio/ko/soju.mp3"
+    },
+    "latte": {
+      "text": "라떼",
+      "sourceHash": "dfc5f89975b81dc98cd44fecf2c1389368272e0a93c268ebc5e96e757feb1871",
+      "path": "/audio/ko/latte.mp3"
+    },
+    "americano": {
+      "text": "아메리카노",
+      "sourceHash": "df2d8024671996a3ffe31707e7b1d88a0f447670118617fff13e1fb319d33bed",
+      "path": "/audio/ko/americano.mp3"
+    },
+    "espresso": {
+      "text": "에스프레소",
+      "sourceHash": "26b58e747210499e30bea874a1e005f7d5bda47f9914e3186f5b12571f9b0b1f",
+      "path": "/audio/ko/espresso.mp3"
+    },
+    "hot-chocolate": {
+      "text": "핫초코",
+      "sourceHash": "c6bf402c2ceb7bbf57ca0aebccd4b5bbb3c64232c3d47b29f030bc2e03e29048",
+      "path": "/audio/ko/hot-chocolate.mp3"
+    },
+    "ice": {
+      "text": "얼음",
+      "sourceHash": "4199e9133e06b5980d2c8d39b74a0f3c67fdd860c18ae385220a28f41cc3fce5",
+      "path": "/audio/ko/ice.mp3"
+    },
+    "cup": {
+      "text": "컵",
+      "sourceHash": "24d0e55eae371e86102adb99aece71f13d336e536c9ee044724b4545a1a9eb02",
+      "path": "/audio/ko/cup.mp3"
+    },
+    "straw": {
+      "text": "빨대",
+      "sourceHash": "1005f9b58d19d38e5d70a5f39d3d110f1085ea40d89a49b3ba2b8a5d1233e398",
+      "path": "/audio/ko/straw.mp3"
+    },
+    "bottle": {
+      "text": "병",
+      "sourceHash": "1d1fe6455f9c639e0612dcaa57da4f7a3ba4ce1c4e54b0ab30f9d52d02398bbe",
+      "path": "/audio/ko/bottle.mp3"
+    }
+  }
+}
