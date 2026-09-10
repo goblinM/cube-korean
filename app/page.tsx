@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { CHAPTERS, COURSE_WORDS } from "./data/lessons/course";
 import {
   advanceLessonGroup,
+  canResumeLessonSession,
   createLessonSession,
   createReviewSession,
   hasNextLessonGroup,
@@ -18,6 +19,7 @@ import {
   isReviewDue,
   isLessonUnlocked,
   readProgress,
+  recordLessonMistake,
   recordMistakeReview,
   recordLessonResult,
   writeProgress,
@@ -163,8 +165,8 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!checkpointReady) return;
-    if (!started || (session.phase === "results" && !hasNextGroup)) {
+    if (!checkpointReady || !started) return;
+    if (session.phase === "results" && !hasNextGroup) {
       clearLearningCheckpoint(window.localStorage);
       return;
     }
@@ -215,7 +217,7 @@ export default function Home() {
       setProgress((current) => {
         const updated = practiceMode === "mistakes"
           ? recordMistakeReview(current, session.originalWordIds, session.mistakeIds, completedAt.toISOString())
-          : recordLessonResult(current, lesson.id, accuracy, summary.mistakeIds, completedAt.toISOString());
+          : recordLessonResult(current, lesson.id, accuracy, summary.mistakeIds, completedAt.toISOString(), true);
         writeProgress(window.localStorage, updated);
         return updated;
       });
@@ -227,10 +229,14 @@ export default function Home() {
   function startLesson(lessonId = selectedLessonId, chapterId = selectedChapterId) {
     const targetChapter = CHAPTERS.find((candidate) => candidate.id === chapterId) ?? CHAPTERS[0];
     const targetLesson = targetChapter.lessons.find((candidate) => candidate.id === lessonId) ?? targetChapter.lessons[0];
+    const canResume = practiceMode === "lesson"
+      && selectedChapterId === targetChapter.id
+      && selectedLessonId === targetLesson.id
+      && canResumeLessonSession(session, targetLesson.words.map((item) => item.id));
     setPracticeMode("lesson");
     setSelectedChapterId(targetChapter.id);
     setSelectedLessonId(targetLesson.id);
-    setSession(createLessonSession(targetLesson.words.map((item) => item.id)));
+    if (!canResume) setSession(createLessonSession(targetLesson.words.map((item) => item.id)));
     setAnswer("");
     setKeyboardJamo("");
     setMessage("");
@@ -270,6 +276,16 @@ export default function Home() {
         setMessage("");
       }, 650);
     } else {
+      const isNewLessonMistake = practiceMode === "lesson"
+        && session.phase !== "copy"
+        && !session.mistakeIds.includes(word.id);
+      if (isNewLessonMistake) {
+        setProgress((current) => {
+          const updated = recordLessonMistake(current, lesson.id, word.id);
+          writeProgress(window.localStorage, updated);
+          return updated;
+        });
+      }
       setSession((current) => submitLessonAnswer(current, word.id, false));
       const nextErrorCount = session.currentErrorCount + 1;
       setMessage(session.phase !== "copy" && nextErrorCount >= 3

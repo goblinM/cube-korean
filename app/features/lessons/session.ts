@@ -64,6 +64,13 @@ export function hasNextLessonGroup(session: LessonSession): boolean {
     && (session.groupIndex + 1) * session.groupSize < session.allWordIds.length;
 }
 
+/** 判断当前未完成会话是否属于同一小关卡，可安全从原分组位置继续。 */
+export function canResumeLessonSession(session: LessonSession, wordIds: string[]): boolean {
+  return (session.phase !== "results" || hasNextLessonGroup(session))
+    && session.allWordIds.length === wordIds.length
+    && session.allWordIds.every((id, index) => id === wordIds[index]);
+}
+
 /** 汇总已完成小组和当前小组的整关正确数、错词及总词数。 */
 export function summarizeLessonSession(session: LessonSession) {
   return {

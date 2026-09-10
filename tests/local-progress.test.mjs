@@ -6,6 +6,7 @@ import {
   isLessonUnlocked,
   PROGRESS_STORAGE_KEY,
   readProgress,
+  recordLessonMistake,
   recordLessonResult,
   recordMistakeReview,
   writeProgress,
@@ -37,6 +38,19 @@ test("adds listening errors and removes them after two clean reviews", () => {
   assert.equal(progress.mistakes.coffee.correctReviews, 1);
   progress = recordMistakeReview(progress, ["coffee"], [], "2026-09-09T00:00:00.000Z");
   assert.equal(progress.mistakes.coffee, undefined);
+});
+
+test("records a listening mistake before the whole lesson is complete", () => {
+  const progress = recordLessonMistake(createEmptyProgress(), "cafe", "coffee", "2026-09-07T00:00:00.000Z");
+  assert.deepEqual(progress.mistakes.coffee, {
+    lessonId: "cafe",
+    errorCount: 1,
+    correctReviews: 0,
+    lastMistakeAt: "2026-09-07T00:00:00.000Z",
+  });
+  const completed = recordLessonResult(progress, "cafe", 80, ["coffee"], "2026-09-07T01:00:00.000Z", true);
+  assert.equal(completed.mistakes.coffee.errorCount, 1);
+  assert.deepEqual(completed.lessons.cafe.mistakeIds, ["coffee"]);
 });
 
 test("keeps a word after a failed dedicated review", () => {

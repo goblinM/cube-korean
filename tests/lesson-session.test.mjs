@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   advanceLessonGroup,
+  canResumeLessonSession,
   createLessonSession,
   createReviewSession,
   hasNextLessonGroup,
@@ -62,7 +63,10 @@ test("starts mistake review in dictation mode and remembers failed review words"
 test("reveals a dictation spelling after three errors and resets for the next word", () => {
   let session = createReviewSession(["coffee", "beer"]);
   session = submitLessonAnswer(session, "coffee", false);
+  assert.equal(session.currentErrorCount, 1);
+  assert.equal(shouldRevealSpelling(session), false);
   session = submitLessonAnswer(session, "coffee", false);
+  assert.equal(session.currentErrorCount, 2);
   assert.equal(shouldRevealSpelling(session), false);
   session = submitLessonAnswer(session, "coffee", false);
   assert.equal(session.currentErrorCount, 3);
@@ -92,6 +96,8 @@ test("splits a lesson into five-word groups and preserves whole-lesson results",
   }
   session = submitLessonAnswer(session, "word-2", true);
   assert.equal(hasNextLessonGroup(session), true);
+  assert.equal(canResumeLessonSession(session, wordIds), true);
+  assert.equal(canResumeLessonSession(session, [...wordIds].reverse()), false);
 
   session = advanceLessonGroup(session);
   assert.equal(session.groupIndex, 1);
@@ -106,6 +112,7 @@ test("splits a lesson into five-word groups and preserves whole-lesson results",
   for (const wordId of session.originalWordIds) session = submitLessonAnswer(session, wordId, true);
   for (const wordId of session.originalWordIds) session = submitLessonAnswer(session, wordId, true);
   assert.equal(hasNextLessonGroup(session), false);
+  assert.equal(canResumeLessonSession(session, wordIds), false);
   assert.deepEqual(summarizeLessonSession(session), {
     wordCount: 12,
     firstListenCorrect: 11,

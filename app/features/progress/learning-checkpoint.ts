@@ -29,7 +29,7 @@ export function readLearningCheckpoint(storage: StorageReader, chapters: Chapter
     const lesson = chapter?.lessons.find((candidate) => candidate.id === parsed.selectedLessonId);
     const session = parsed.session as Partial<LessonSession> | undefined;
     if (session && session.currentErrorCount === undefined && typeof session.currentHadError === "boolean") {
-      session.currentErrorCount = session.currentHadError ? 1 : 0;
+      session.currentErrorCount = 0;
     }
     if (session && session.allWordIds === undefined && isStringArray(session.originalWordIds)) {
       session.allWordIds = [...session.originalWordIds];

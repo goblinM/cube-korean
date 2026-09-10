@@ -40,9 +40,9 @@ app/page.tsx Home
   ↓
 features/spelling/hangul.ts 判断IME输入
   ↓
-features/lessons/session.ts 推进组内阶段，汇总四组正确率与错词
+features/lessons/session.ts 推进组内阶段，汇总四组正确率与错词；组间恢复点持续保存
   ↓
-features/progress/local-progress.ts 保存结果并解锁下一关
+features/progress/local-progress.ts 首次听写错误即时收录，整关完成后保存结果并解锁下一关
   ↓
 speak 调用 SpeechSynthesisUtterance(ko-KR)
 ```

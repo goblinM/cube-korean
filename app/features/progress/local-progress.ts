@@ -87,6 +87,7 @@ export function recordLessonResult(
   accuracy: number,
   mistakeIds: string[],
   completedAt = new Date().toISOString(),
+  mistakeCountsAlreadyRecorded = false,
 ): CourseProgress {
   const previous = progress.lessons[lessonId];
   const mastery = accuracy >= 95 && (previous?.bestAccuracy ?? 0) >= 95
@@ -97,12 +98,14 @@ export function recordLessonResult(
   const mistakes = { ...progress.mistakes };
   for (const wordId of mistakeIds) {
     const previousMistake = mistakes[wordId];
-    mistakes[wordId] = {
-      lessonId,
-      errorCount: (previousMistake?.errorCount ?? 0) + 1,
-      correctReviews: 0,
-      lastMistakeAt: completedAt,
-    };
+    if (!mistakeCountsAlreadyRecorded || !previousMistake) {
+      mistakes[wordId] = {
+        lessonId,
+        errorCount: (previousMistake?.errorCount ?? 0) + 1,
+        correctReviews: 0,
+        lastMistakeAt: completedAt,
+      };
+    }
   }
   return {
     version: 1,
@@ -117,6 +120,28 @@ export function recordLessonResult(
         completedAt,
         mastery,
         nextReviewAt,
+      },
+    },
+  };
+}
+
+/** 首次听写答错时立即写入错词本，避免用户中途返回导致错词丢失。 */
+export function recordLessonMistake(
+  progress: CourseProgress,
+  lessonId: string,
+  wordId: string,
+  mistakenAt = new Date().toISOString(),
+): CourseProgress {
+  const previous = progress.mistakes[wordId];
+  return {
+    ...progress,
+    mistakes: {
+      ...progress.mistakes,
+      [wordId]: {
+        lessonId,
+        errorCount: (previous?.errorCount ?? 0) + 1,
+        correctReviews: 0,
+        lastMistakeAt: mistakenAt,
       },
     },
   };

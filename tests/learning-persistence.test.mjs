@@ -79,7 +79,7 @@ test("restores checkpoints saved before per-word error counts were introduced", 
     reviewWordIds: [],
     session,
   };
-  assert.equal(readLearningCheckpoint(memoryStorage({ [LEARNING_CHECKPOINT_STORAGE_KEY]: JSON.stringify(legacy) }), [dailyFoodChapter])?.session.currentErrorCount, 1);
+  assert.equal(readLearningCheckpoint(memoryStorage({ [LEARNING_CHECKPOINT_STORAGE_KEY]: JSON.stringify(legacy) }), [dailyFoodChapter])?.session.currentErrorCount, 0);
   assert.equal(readLearningCheckpoint(memoryStorage({ [LEARNING_CHECKPOINT_STORAGE_KEY]: JSON.stringify(legacy) }), [dailyFoodChapter])?.session.groupSize, null);
 });
 
