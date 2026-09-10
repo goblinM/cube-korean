@@ -6,6 +6,7 @@ import { CHAPTERS, COURSE_WORDS } from "../app/data/lessons/course.ts";
 
 const DEFAULT_VOICE = "ko-KR-SunHiNeural";
 const DEFAULT_FORMAT = "audio-24khz-48kbitrate-mono-mp3";
+const GENERATION_CONCURRENCY = 4;
 const args = new Set(process.argv.slice(2));
 const scope = args.has("--scope=all") ? "all" : "pilot";
 const dryRun = args.has("--dry-run");
@@ -54,6 +55,19 @@ async function readManifest() {
   }
 }
 
+async function writeManifest(items) {
+  const temporaryPath = `${manifestPath}.tmp`;
+  const manifest = {
+    version: 1,
+    voice,
+    format,
+    generatedAt: new Date().toISOString(),
+    items,
+  };
+  await writeFile(temporaryPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+  await rename(temporaryPath, manifestPath);
+}
+
 async function synthesize(word) {
   const endpoint = `https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`;
   const ssml = `<speak version="1.0" xml:lang="ko-KR"><voice name="${escapeXml(voice)}">${escapeXml(word.korean)}</voice></speak>`;
@@ -86,6 +100,25 @@ async function synthesize(word) {
   throw lastError;
 }
 
+async function generateWord(word) {
+  const filename = `${encodeURIComponent(word.id)}.mp3`;
+  const outputPath = join(outputDirectory, filename);
+  const temporaryPath = `${outputPath}.tmp`;
+  const audio = await synthesize(word);
+  await writeFile(temporaryPath, audio);
+  try {
+    await rename(temporaryPath, outputPath);
+  } catch (error) {
+    await unlink(temporaryPath).catch(() => {});
+    throw error;
+  }
+  return {
+    text: word.korean,
+    sourceHash: sourceHash(word),
+    path: `/audio/ko/${filename}`,
+  };
+}
+
 async function main() {
   const ids = new Set(selectedWords.map((word) => word.id));
   if (ids.size !== selectedWords.length) throw new Error(`${scope}范围内存在重复wordId，已停止生成`);
@@ -99,6 +132,7 @@ async function main() {
   await mkdir(outputDirectory, { recursive: true });
   const previousManifest = await readManifest();
   const items = scope === "all" ? {} : { ...previousManifest.items };
+  const pendingWords = [];
   let generated = 0;
   let skipped = 0;
 
@@ -112,33 +146,33 @@ async function main() {
       skipped += 1;
       continue;
     }
-
-    const temporaryPath = `${outputPath}.tmp`;
-    const audio = await synthesize(word);
-    await writeFile(temporaryPath, audio);
-    try {
-      await rename(temporaryPath, outputPath);
-    } catch (error) {
-      await unlink(temporaryPath).catch(() => {});
-      throw error;
-    }
-    items[word.id] = {
-      text: word.korean,
-      sourceHash: hash,
-      path: `/audio/ko/${filename}`,
-    };
-    generated += 1;
-    console.log(`[${generated + skipped}/${selectedWords.length}] ${word.id} ${word.korean}`);
+    pendingWords.push(word);
   }
 
-  const manifest = {
-    version: 1,
-    voice,
-    format,
-    generatedAt: new Date().toISOString(),
-    items,
-  };
-  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+  await writeManifest(items);
+  for (let index = 0; index < pendingWords.length; index += GENERATION_CONCURRENCY) {
+    const batch = pendingWords.slice(index, index + GENERATION_CONCURRENCY);
+    const results = await Promise.allSettled(batch.map(async (word) => ({
+      word,
+      item: await generateWord(word),
+    })));
+    let failed;
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        items[result.value.word.id] = result.value.item;
+        generated += 1;
+      } else if (!failed) {
+        failed = result.reason;
+      }
+    }
+    await writeManifest(items);
+    const completed = generated + skipped;
+    if (completed % 40 === 0 || completed === selectedWords.length || failed) {
+      console.log(`进度: ${completed}/${selectedWords.length}`);
+    }
+    if (failed) throw failed;
+  }
+
   console.log(`完成: 新生成${generated}，跳过${skipped}，清单${manifestPath}`);
 }
 
