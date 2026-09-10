@@ -34,13 +34,13 @@ Node.js >=22.13.0 → npm install → npm run dev
 ```text
 app/page.tsx Home
   ↓ 点击“开始本关”设置 started
-当前小关卡选择20个词
+当前小关卡选择20个词，并按5词拆为4组
   ↓
-看词 copy / 听音 listen 两轮状态；听写单词连续错3次后提示答案
+每组依次完成看词 copy / 听音 listen / 错词 retry；听写单词连续错3次后提示答案
   ↓
 features/spelling/hangul.ts 判断IME输入
   ↓
-features/lessons/session.ts 推进阶段并记录错词
+features/lessons/session.ts 推进组内阶段，汇总四组正确率与错词
   ↓
 features/progress/local-progress.ts 保存结果并解锁下一关
   ↓

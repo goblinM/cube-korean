@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { dailyFoodChapter } from "../app/data/lessons/daily-food.ts";
-import { createLessonSession, submitLessonAnswer } from "../app/features/lessons/session.ts";
+import { createLessonSession, hasNextLessonGroup, submitLessonAnswer } from "../app/features/lessons/session.ts";
 import {
   clearLearningCheckpoint,
   LEARNING_CHECKPOINT_STORAGE_KEY,
@@ -65,6 +65,11 @@ test("restores checkpoints saved before per-word error counts were introduced", 
   const lesson = dailyFoodChapter.lessons[0];
   const session = createLessonSession([lesson.words[0].id]);
   delete session.currentErrorCount;
+  delete session.allWordIds;
+  delete session.groupIndex;
+  delete session.groupSize;
+  delete session.completedFirstListenCorrect;
+  delete session.completedMistakeIds;
   session.currentHadError = true;
   const legacy = {
     version: 1,
@@ -75,4 +80,24 @@ test("restores checkpoints saved before per-word error counts were introduced", 
     session,
   };
   assert.equal(readLearningCheckpoint(memoryStorage({ [LEARNING_CHECKPOINT_STORAGE_KEY]: JSON.stringify(legacy) }), [dailyFoodChapter])?.session.currentErrorCount, 1);
+  assert.equal(readLearningCheckpoint(memoryStorage({ [LEARNING_CHECKPOINT_STORAGE_KEY]: JSON.stringify(legacy) }), [dailyFoodChapter])?.session.groupSize, null);
+});
+
+test("restores the pause between two five-word lesson groups", () => {
+  const lesson = dailyFoodChapter.lessons[0];
+  let session = createLessonSession(lesson.words.map((word) => word.id));
+  for (const wordId of session.originalWordIds) session = submitLessonAnswer(session, wordId, true);
+  for (const wordId of session.originalWordIds) session = submitLessonAnswer(session, wordId, true);
+  assert.equal(hasNextLessonGroup(session), true);
+  const storage = memoryStorage();
+  writeLearningCheckpoint(storage, {
+    practiceMode: "lesson",
+    selectedChapterId: dailyFoodChapter.id,
+    selectedLessonId: lesson.id,
+    reviewWordIds: [],
+    session,
+  });
+  const restored = readLearningCheckpoint(storage, [dailyFoodChapter]);
+  assert.equal(restored?.session.phase, "results");
+  assert.equal(hasNextLessonGroup(restored.session), true);
 });

@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createLessonSession, createReviewSession, shouldRevealSpelling, submitLessonAnswer } from "../app/features/lessons/session.ts";
+import {
+  advanceLessonGroup,
+  createLessonSession,
+  createReviewSession,
+  hasNextLessonGroup,
+  shouldRevealSpelling,
+  submitLessonAnswer,
+  summarizeLessonSession,
+} from "../app/features/lessons/session.ts";
 
 test("moves from copy to listen while preserving the original word order", () => {
   let session = createLessonSession(["coffee", "beer"]);
@@ -70,4 +78,37 @@ test("does not reveal spelling during the copy phase", () => {
   session = submitLessonAnswer(session, "coffee", false);
   session = submitLessonAnswer(session, "coffee", false);
   assert.equal(shouldRevealSpelling(session), false);
+});
+
+test("splits a lesson into five-word groups and preserves whole-lesson results", () => {
+  const wordIds = Array.from({ length: 12 }, (_, index) => `word-${index + 1}`);
+  let session = createLessonSession(wordIds);
+  assert.deepEqual(session.queue, wordIds.slice(0, 5));
+
+  for (const wordId of session.originalWordIds) session = submitLessonAnswer(session, wordId, true);
+  for (const wordId of session.originalWordIds) {
+    if (wordId === "word-2") session = submitLessonAnswer(session, wordId, false);
+    session = submitLessonAnswer(session, wordId, true);
+  }
+  session = submitLessonAnswer(session, "word-2", true);
+  assert.equal(hasNextLessonGroup(session), true);
+
+  session = advanceLessonGroup(session);
+  assert.equal(session.groupIndex, 1);
+  assert.deepEqual(session.queue, wordIds.slice(5, 10));
+  assert.deepEqual(session.completedMistakeIds, ["word-2"]);
+
+  for (const wordId of session.originalWordIds) session = submitLessonAnswer(session, wordId, true);
+  for (const wordId of session.originalWordIds) session = submitLessonAnswer(session, wordId, true);
+  session = advanceLessonGroup(session);
+  assert.deepEqual(session.queue, wordIds.slice(10));
+
+  for (const wordId of session.originalWordIds) session = submitLessonAnswer(session, wordId, true);
+  for (const wordId of session.originalWordIds) session = submitLessonAnswer(session, wordId, true);
+  assert.equal(hasNextLessonGroup(session), false);
+  assert.deepEqual(summarizeLessonSession(session), {
+    wordCount: 12,
+    firstListenCorrect: 11,
+    mistakeIds: ["word-2"],
+  });
 });

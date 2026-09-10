@@ -2,7 +2,15 @@
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { CHAPTERS, COURSE_WORDS } from "./data/lessons/course";
-import { createLessonSession, createReviewSession, shouldRevealSpelling, submitLessonAnswer } from "./features/lessons/session";
+import {
+  advanceLessonGroup,
+  createLessonSession,
+  createReviewSession,
+  hasNextLessonGroup,
+  shouldRevealSpelling,
+  submitLessonAnswer,
+  summarizeLessonSession,
+} from "./features/lessons/session";
 import { countDueLessons, recommendLesson } from "./features/lessons/recommendation";
 import { selectWeakWordIds } from "./features/lessons/weak-review";
 import {
@@ -103,6 +111,7 @@ export default function Home() {
     return true;
   });
   const weakWordIds = selectWeakWordIds(COURSE_WORDS, progress);
+  const hasNextGroup = hasNextLessonGroup(session);
   const filterLessons = mistakeChapterFilter === "all"
     ? CHAPTERS.flatMap((item) => item.lessons)
     : CHAPTERS.find((item) => item.id === mistakeChapterFilter)?.lessons ?? [];
@@ -155,7 +164,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!checkpointReady) return;
-    if (!started || session.phase === "results") {
+    if (!started || (session.phase === "results" && !hasNextGroup)) {
       clearLearningCheckpoint(window.localStorage);
       return;
     }
@@ -166,7 +175,7 @@ export default function Home() {
       reviewWordIds,
       session,
     });
-  }, [checkpointReady, practiceMode, reviewWordIds, selectedChapterId, selectedLessonId, session, started]);
+  }, [checkpointReady, hasNextGroup, practiceMode, reviewWordIds, selectedChapterId, selectedLessonId, session, started]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -195,24 +204,25 @@ export default function Home() {
   }, [started, word.korean, session.phase, muted]);
 
   useEffect(() => {
-    if (session.phase !== "results" || resultSaved) return;
+    if (session.phase !== "results" || resultSaved || hasNextGroup) return;
     const timer = window.setTimeout(() => {
+      const summary = summarizeLessonSession(session);
       const accuracy = practiceMode === "mistakes"
         ? Math.round(((words.length - session.mistakeIds.length) / words.length) * 100)
-        : Math.round((session.firstListenCorrect / words.length) * 100);
+        : Math.round((summary.firstListenCorrect / summary.wordCount) * 100);
       const completedAt = new Date();
       setActivity(recordLearningActivity(window.localStorage, words.length, accuracy, completedAt));
       setProgress((current) => {
         const updated = practiceMode === "mistakes"
           ? recordMistakeReview(current, session.originalWordIds, session.mistakeIds, completedAt.toISOString())
-          : recordLessonResult(current, lesson.id, accuracy, session.mistakeIds, completedAt.toISOString());
+          : recordLessonResult(current, lesson.id, accuracy, summary.mistakeIds, completedAt.toISOString());
         writeProgress(window.localStorage, updated);
         return updated;
       });
       setResultSaved(true);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [lesson.id, practiceMode, resultSaved, session, words.length]);
+  }, [hasNextGroup, lesson.id, practiceMode, resultSaved, session, words.length]);
 
   function startLesson(lessonId = selectedLessonId, chapterId = selectedChapterId) {
     const targetChapter = CHAPTERS.find((candidate) => candidate.id === chapterId) ?? CHAPTERS[0];
@@ -239,6 +249,14 @@ export default function Home() {
     setMessage("");
     setResultSaved(false);
     setStarted(true);
+    window.setTimeout(() => inputRef.current?.focus(), 100);
+  }
+
+  function startNextGroup() {
+    setSession((current) => advanceLessonGroup(current));
+    setAnswer("");
+    setKeyboardJamo("");
+    setMessage("");
     window.setTimeout(() => inputRef.current?.focus(), 100);
   }
 
@@ -434,7 +452,7 @@ export default function Home() {
               </div>
               <div className="cube-shadow" />
             </div>
-            <div className="level-meta"><span>{chapter.titleChinese} · 第 {lessons.findIndex((item) => item.id === lesson.id) + 1} 关</span><h2>{lesson.titleChinese}</h2><p>{lesson.titleKorean} · 20词</p></div>
+            <div className="level-meta"><span>{chapter.titleChinese} · 第 {lessons.findIndex((item) => item.id === lesson.id) + 1} 关</span><h2>{lesson.titleChinese}</h2><p>{lesson.titleKorean} · 20词 · 4组练习</p></div>
             <div className="stage-row">
               {lessons.map((item, index) => {
                 const unlocked = isLessonUnlocked(lessons.map((entry) => entry.id), item.id, progress);
@@ -463,30 +481,36 @@ export default function Home() {
 
   if (session.phase === "results") {
     const isMistakeReview = practiceMode === "mistakes";
+    const lessonSummary = summarizeLessonSession(session);
+    const isGroupComplete = !isMistakeReview && hasNextGroup;
+    const resultMistakeIds = isGroupComplete ? session.mistakeIds : lessonSummary.mistakeIds;
+    const resultWordCount = isGroupComplete ? session.originalWordIds.length : lessonSummary.wordCount;
     const accuracy = isMistakeReview
       ? Math.round(((words.length - session.mistakeIds.length) / words.length) * 100)
-      : Math.round((session.firstListenCorrect / words.length) * 100);
+      : isGroupComplete
+        ? Math.round((session.firstListenCorrect / session.originalWordIds.length) * 100)
+        : Math.round((lessonSummary.firstListenCorrect / lessonSummary.wordCount) * 100);
     const lessonIndex = lessons.findIndex((item) => item.id === lesson.id);
     const nextLesson = lessons[lessonIndex + 1];
     return (
       <main className="results-page">
         <section className="results-card">
           <div className="result-mark">✓</div>
-          <div className="eyebrow">{isMistakeReview ? "REVIEW COMPLETE" : "LESSON COMPLETE"}</div>
-          <h1>{isMistakeReview ? "复习完成！" : "本关完成！"}</h1>
-          <p>{isMistakeReview ? `本轮复习 ${words.length} 个错词` : `${lesson.titleKorean} · ${lesson.titleChinese}`}</p>
+          <div className="eyebrow">{isMistakeReview ? "REVIEW COMPLETE" : isGroupComplete ? `GROUP ${session.groupIndex + 1} COMPLETE` : "LESSON COMPLETE"}</div>
+          <h1>{isMistakeReview ? "复习完成！" : isGroupComplete ? `第 ${session.groupIndex + 1} 组完成！` : "本关完成！"}</h1>
+          <p>{isMistakeReview ? `本轮复习 ${words.length} 个错词` : isGroupComplete ? `已完成 5 个词，稍作停顿再继续` : `${lesson.titleKorean} · ${lesson.titleChinese}`}</p>
           <div className="result-stats">
-            <div><strong>{words.length}</strong><span>学习词汇</span></div>
+            <div><strong>{resultWordCount}</strong><span>{isGroupComplete ? "本组词汇" : "学习词汇"}</span></div>
             <div><strong>{accuracy}%</strong><span>{isMistakeReview ? "本轮一次答对率" : "首次听写正确率"}</span></div>
-            <div><strong>{session.mistakeIds.length}</strong><span>{isMistakeReview ? "仍需复习" : "重练词汇"}</span></div>
+            <div><strong>{resultMistakeIds.length}</strong><span>{isMistakeReview ? "仍需复习" : "重练词汇"}</span></div>
           </div>
-          {session.mistakeIds.length > 0 && (
+          {resultMistakeIds.length > 0 && (
             <div className="mistake-list">
-              <span>{isMistakeReview ? "本轮出现错误" : "本关已纠正"}</span>
-              <div>{session.mistakeIds.map((id) => <b key={id}>{words.find((item) => item.id === id)?.korean}</b>)}</div>
+              <span>{isMistakeReview ? "本轮出现错误" : isGroupComplete ? "本组已纠正" : "本关已纠正"}</span>
+              <div>{resultMistakeIds.map((id) => <b key={id}>{words.find((item) => item.id === id)?.korean}</b>)}</div>
             </div>
           )}
-          <button className="primary" onClick={() => isMistakeReview ? setStarted(false) : nextLesson ? startLesson(nextLesson.id) : startLesson()}>{isMistakeReview ? "返回错词本" : nextLesson ? "进入下一关" : "再练一次"} <span>{isMistakeReview || nextLesson ? "→" : "↻"}</span></button>
+          <button className="primary" onClick={() => isGroupComplete ? startNextGroup() : isMistakeReview ? setStarted(false) : nextLesson ? startLesson(nextLesson.id) : startLesson()}>{isGroupComplete ? `继续第 ${session.groupIndex + 2} 组` : isMistakeReview ? "返回错词本" : nextLesson ? "进入下一关" : "再练一次"} <span>{isMistakeReview || nextLesson || isGroupComplete ? "→" : "↻"}</span></button>
           <button className="result-link" onClick={() => { setStarted(false); if (isMistakeReview) setShowMistakeBook(false); }}>{isMistakeReview ? "返回课程地图" : "返回关卡地图"}</button>
         </section>
       </main>
@@ -499,13 +523,14 @@ export default function Home() {
   const lessonProgressPercent = ((session.position + 1) / session.queue.length) * 100;
   const phaseLabel = session.phase === "copy" ? "看词拼写" : session.phase === "listen" ? "听音拼写" : "错词重练";
   const phaseNumber = session.phase === "copy" ? "01" : session.phase === "listen" ? "02" : "03";
+  const groupTotal = session.groupSize ? Math.ceil(session.allWordIds.length / session.groupSize) : 1;
 
   return (
     <main className="practice-page">
       <header className="practice-header">
         <button className="icon-button" onClick={() => setStarted(false)} aria-label="退出练习">×</button>
         <div className="progress-track" role="progressbar" aria-label="本轮学习进度" aria-valuemin={0} aria-valuemax={session.queue.length} aria-valuenow={session.position + 1}><span style={{ width: `${lessonProgressPercent}%` }} /></div>
-        <div className="counter"><b>{session.position + 1}</b> / {session.queue.length}</div>
+        <div className="counter">{session.groupSize && <span>第 {session.groupIndex + 1}/{groupTotal} 组 · </span>}<b>{session.position + 1}</b> / {session.queue.length}</div>
       </header>
 
       <div className="mode-pill"><span>{phaseNumber}</span>{phaseLabel}</div>

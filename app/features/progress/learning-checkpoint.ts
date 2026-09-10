@@ -31,6 +31,13 @@ export function readLearningCheckpoint(storage: StorageReader, chapters: Chapter
     if (session && session.currentErrorCount === undefined && typeof session.currentHadError === "boolean") {
       session.currentErrorCount = session.currentHadError ? 1 : 0;
     }
+    if (session && session.allWordIds === undefined && isStringArray(session.originalWordIds)) {
+      session.allWordIds = [...session.originalWordIds];
+      session.groupIndex = 0;
+      session.groupSize = null;
+      session.completedFirstListenCorrect = 0;
+      session.completedMistakeIds = [];
+    }
     if (
       parsed.version !== 1
       || (parsed.practiceMode !== "lesson" && parsed.practiceMode !== "mistakes")
@@ -38,7 +45,7 @@ export function readLearningCheckpoint(storage: StorageReader, chapters: Chapter
       || !lesson
       || !isStringArray(parsed.reviewWordIds)
       || !session
-      || !["copy", "listen", "retry"].includes(session.phase ?? "")
+      || !["copy", "listen", "retry", "results"].includes(session.phase ?? "")
       || !isStringArray(session.queue)
       || !session.queue.length
       || !isStringArray(session.originalWordIds)
@@ -53,11 +60,22 @@ export function readLearningCheckpoint(storage: StorageReader, chapters: Chapter
       || typeof session.currentHadError !== "boolean"
       || !Number.isInteger(session.currentErrorCount)
       || (session.currentErrorCount ?? -1) < 0
+      || !isStringArray(session.allWordIds)
+      || !session.allWordIds.length
+      || !Number.isInteger(session.groupIndex)
+      || (session.groupIndex ?? -1) < 0
+      || (session.groupSize !== null && (!Number.isInteger(session.groupSize) || (session.groupSize ?? 0) < 1))
+      || typeof session.completedFirstListenCorrect !== "number"
+      || !Number.isFinite(session.completedFirstListenCorrect)
+      || session.completedFirstListenCorrect < 0
+      || session.completedFirstListenCorrect > session.allWordIds.length
+      || !isStringArray(session.completedMistakeIds)
+      || (session.groupSize !== null && (session.groupIndex ?? 0) * session.groupSize >= session.allWordIds.length)
     ) return null;
 
     const allWordIds = new Set(chapters.flatMap((item) => item.lessons.flatMap((entry) => entry.words.map((word) => word.id))));
     const lessonWordIds = new Set(lesson.words.map((word) => word.id));
-    const sessionWordIds = [...session.queue, ...session.originalWordIds, ...session.mistakeIds];
+    const sessionWordIds = [...session.queue, ...session.originalWordIds, ...session.mistakeIds, ...session.allWordIds, ...session.completedMistakeIds];
     const allowedWordIds = parsed.practiceMode === "lesson" ? lessonWordIds : allWordIds;
     if (sessionWordIds.some((id) => !allowedWordIds.has(id))) return null;
     if (parsed.practiceMode === "mistakes" && parsed.reviewWordIds.some((id) => !allWordIds.has(id))) return null;

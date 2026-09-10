@@ -1,5 +1,7 @@
 export type LessonPhase = "copy" | "listen" | "retry" | "results";
 
+export const LESSON_GROUP_SIZE = 5;
+
 export type LessonSession = {
   phase: LessonPhase;
   queue: string[];
@@ -9,19 +11,30 @@ export type LessonSession = {
   firstListenCorrect: number;
   currentHadError: boolean;
   currentErrorCount: number;
+  allWordIds: string[];
+  groupIndex: number;
+  groupSize: number | null;
+  completedFirstListenCorrect: number;
+  completedMistakeIds: string[];
 };
 
 /** 创建从看词阶段开始的学习会话，并保留原始词序供听写阶段重新使用。 */
 export function createLessonSession(wordIds: string[]): LessonSession {
+  const groupWordIds = wordIds.slice(0, LESSON_GROUP_SIZE);
   return {
     phase: "copy",
-    queue: [...wordIds],
+    queue: groupWordIds,
     position: 0,
-    originalWordIds: [...wordIds],
+    originalWordIds: groupWordIds,
     mistakeIds: [],
     firstListenCorrect: 0,
     currentHadError: false,
     currentErrorCount: 0,
+    allWordIds: [...wordIds],
+    groupIndex: 0,
+    groupSize: LESSON_GROUP_SIZE,
+    completedFirstListenCorrect: 0,
+    completedMistakeIds: [],
   };
 }
 
@@ -36,6 +49,48 @@ export function createReviewSession(wordIds: string[]): LessonSession {
     firstListenCorrect: 0,
     currentHadError: false,
     currentErrorCount: 0,
+    allWordIds: [...wordIds],
+    groupIndex: 0,
+    groupSize: null,
+    completedFirstListenCorrect: 0,
+    completedMistakeIds: [],
+  };
+}
+
+/** 判断当前小组完成后是否还有下一组词，专项错词复习不启用分组。 */
+export function hasNextLessonGroup(session: LessonSession): boolean {
+  return session.phase === "results"
+    && session.groupSize !== null
+    && (session.groupIndex + 1) * session.groupSize < session.allWordIds.length;
+}
+
+/** 汇总已完成小组和当前小组的整关正确数、错词及总词数。 */
+export function summarizeLessonSession(session: LessonSession) {
+  return {
+    wordCount: session.allWordIds.length,
+    firstListenCorrect: session.completedFirstListenCorrect + session.firstListenCorrect,
+    mistakeIds: [...new Set([...session.completedMistakeIds, ...session.mistakeIds])],
+  };
+}
+
+/** 从组间结果页进入下一组，并保留之前小组的整关统计。 */
+export function advanceLessonGroup(session: LessonSession): LessonSession {
+  if (!hasNextLessonGroup(session) || session.groupSize === null) return session;
+  const groupIndex = session.groupIndex + 1;
+  const groupWordIds = session.allWordIds.slice(groupIndex * session.groupSize, (groupIndex + 1) * session.groupSize);
+  return {
+    ...session,
+    phase: "copy",
+    queue: groupWordIds,
+    position: 0,
+    originalWordIds: groupWordIds,
+    mistakeIds: [],
+    firstListenCorrect: 0,
+    currentHadError: false,
+    currentErrorCount: 0,
+    groupIndex,
+    completedFirstListenCorrect: session.completedFirstListenCorrect + session.firstListenCorrect,
+    completedMistakeIds: [...new Set([...session.completedMistakeIds, ...session.mistakeIds])],
   };
 }
 
