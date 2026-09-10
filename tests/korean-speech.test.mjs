@@ -18,5 +18,5 @@ test("configures Korean speech without owning the learning flow", () => {
   assert.equal(calls[0], "cancel");
   assert.equal(calls[1].text, "커피");
   assert.equal(calls[1].lang, "ko-KR");
-  assert.equal(calls[1].rate, 0.9);
+  assert.equal(calls[1].rate, 0.78);
 });

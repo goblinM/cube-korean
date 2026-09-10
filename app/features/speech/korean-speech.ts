@@ -12,7 +12,7 @@ export function speakKorean(text: string, environment = globalThis as unknown as
     environment.speechSynthesis.cancel();
     const utterance = new environment.SpeechSynthesisUtterance(text);
     utterance.lang = "ko-KR";
-    utterance.rate = 0.9;
+    utterance.rate = 0.78;
     environment.speechSynthesis.speak(utterance);
     return true;
   } catch {
