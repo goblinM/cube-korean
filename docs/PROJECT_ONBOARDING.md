@@ -36,7 +36,7 @@ app/page.tsx Home
   ↓ 点击“开始本关”设置 started
 当前小关卡选择20个词
   ↓
-看词 copy / 听音 listen 两轮状态
+看词 copy / 听音 listen 两轮状态；听写单词连续错3次后提示答案
   ↓
 features/spelling/hangul.ts 判断IME输入
   ↓

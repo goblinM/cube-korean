@@ -28,6 +28,9 @@ export function readLearningCheckpoint(storage: StorageReader, chapters: Chapter
     const chapter = chapters.find((candidate) => candidate.id === parsed.selectedChapterId);
     const lesson = chapter?.lessons.find((candidate) => candidate.id === parsed.selectedLessonId);
     const session = parsed.session as Partial<LessonSession> | undefined;
+    if (session && session.currentErrorCount === undefined && typeof session.currentHadError === "boolean") {
+      session.currentErrorCount = session.currentHadError ? 1 : 0;
+    }
     if (
       parsed.version !== 1
       || (parsed.practiceMode !== "lesson" && parsed.practiceMode !== "mistakes")
@@ -48,6 +51,8 @@ export function readLearningCheckpoint(storage: StorageReader, chapters: Chapter
       || session.firstListenCorrect < 0
       || session.firstListenCorrect > session.originalWordIds.length
       || typeof session.currentHadError !== "boolean"
+      || !Number.isInteger(session.currentErrorCount)
+      || (session.currentErrorCount ?? -1) < 0
     ) return null;
 
     const allWordIds = new Set(chapters.flatMap((item) => item.lessons.flatMap((entry) => entry.words.map((word) => word.id))));

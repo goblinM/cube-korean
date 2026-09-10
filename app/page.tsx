@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { CHAPTERS, COURSE_WORDS } from "./data/lessons/course";
-import { createLessonSession, createReviewSession, submitLessonAnswer } from "./features/lessons/session";
+import { createLessonSession, createReviewSession, shouldRevealSpelling, submitLessonAnswer } from "./features/lessons/session";
 import { countDueLessons, recommendLesson } from "./features/lessons/recommendation";
 import { selectWeakWordIds } from "./features/lessons/weak-review";
 import {
@@ -253,7 +253,12 @@ export default function Home() {
       }, 650);
     } else {
       setSession((current) => submitLessonAnswer(current, word.id, false));
-      setMessage("再听一次，修改红色的位置");
+      const nextErrorCount = session.currentErrorCount + 1;
+      setMessage(session.phase !== "copy" && nextErrorCount >= 3
+        ? "已显示答案，请重新输入正确拼写"
+        : session.phase !== "copy"
+          ? `再听一次，修改红色的位置（${nextErrorCount}/3）`
+          : "修改红色的位置后再检查");
       if (!muted && !speakKorean(word.korean)) setSpeechUnavailable(true);
     }
   }
@@ -489,6 +494,7 @@ export default function Home() {
   }
 
   const isCopyPhase = session.phase === "copy";
+  const revealSpelling = shouldRevealSpelling(session);
   const displayLength = Math.max(word.korean.length, answer.length);
   const lessonProgressPercent = ((session.position + 1) / session.queue.length) * 100;
   const phaseLabel = session.phase === "copy" ? "看词拼写" : session.phase === "listen" ? "听音拼写" : "错词重练";
@@ -547,6 +553,7 @@ export default function Home() {
         />
 
         <div className="translation"><strong>{word.chinese}</strong>{showEnglish && <span>{word.english}</span>}</div>
+        {revealSpelling && <div className="answer-reveal" role="status"><span>提示答案</span><strong lang="ko">{word.korean}</strong><small>重新拼写正确后继续</small></div>}
         <p aria-live="polite" className={`feedback ${answer && !isExactSpelling(answer, word.korean) ? "error" : ""}`}>{message || (isCopyPhase ? "照着上面的韩文输入一遍" : session.phase === "retry" ? "重新写对这个听写错词" : "根据读音写出这个单词")}</p>
       </section>
 

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createLessonSession, createReviewSession, submitLessonAnswer } from "../app/features/lessons/session.ts";
+import { createLessonSession, createReviewSession, shouldRevealSpelling, submitLessonAnswer } from "../app/features/lessons/session.ts";
 
 test("moves from copy to listen while preserving the original word order", () => {
   let session = createLessonSession(["coffee", "beer"]);
@@ -49,4 +49,25 @@ test("starts mistake review in dictation mode and remembers failed review words"
   session = submitLessonAnswer(session, "beer", true);
   assert.equal(session.phase, "results");
   assert.deepEqual(session.mistakeIds, ["coffee"]);
+});
+
+test("reveals a dictation spelling after three errors and resets for the next word", () => {
+  let session = createReviewSession(["coffee", "beer"]);
+  session = submitLessonAnswer(session, "coffee", false);
+  session = submitLessonAnswer(session, "coffee", false);
+  assert.equal(shouldRevealSpelling(session), false);
+  session = submitLessonAnswer(session, "coffee", false);
+  assert.equal(session.currentErrorCount, 3);
+  assert.equal(shouldRevealSpelling(session), true);
+  session = submitLessonAnswer(session, "coffee", true);
+  assert.equal(session.currentErrorCount, 0);
+  assert.equal(shouldRevealSpelling(session), false);
+});
+
+test("does not reveal spelling during the copy phase", () => {
+  let session = createLessonSession(["coffee"]);
+  session = submitLessonAnswer(session, "coffee", false);
+  session = submitLessonAnswer(session, "coffee", false);
+  session = submitLessonAnswer(session, "coffee", false);
+  assert.equal(shouldRevealSpelling(session), false);
 });

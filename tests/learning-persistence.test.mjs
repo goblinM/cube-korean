@@ -60,3 +60,19 @@ test("rejects a checkpoint whose queue no longer belongs to the selected lesson"
   };
   assert.equal(readLearningCheckpoint(memoryStorage({ [LEARNING_CHECKPOINT_STORAGE_KEY]: JSON.stringify(invalid) }), [dailyFoodChapter]), null);
 });
+
+test("restores checkpoints saved before per-word error counts were introduced", () => {
+  const lesson = dailyFoodChapter.lessons[0];
+  const session = createLessonSession([lesson.words[0].id]);
+  delete session.currentErrorCount;
+  session.currentHadError = true;
+  const legacy = {
+    version: 1,
+    practiceMode: "lesson",
+    selectedChapterId: dailyFoodChapter.id,
+    selectedLessonId: lesson.id,
+    reviewWordIds: [],
+    session,
+  };
+  assert.equal(readLearningCheckpoint(memoryStorage({ [LEARNING_CHECKPOINT_STORAGE_KEY]: JSON.stringify(legacy) }), [dailyFoodChapter])?.session.currentErrorCount, 1);
+});
