@@ -18,6 +18,11 @@ test("supports compound vowels, double initials and compound finals", () => {
   assert.equal(composeHangul("ㄱㅏㅂㅅ"), "값");
 });
 
+test("uses the target to resolve an ambiguous repeated consonant", () => {
+  assert.equal(composeHangul("ㄹㅏㄷㄷㅔ", "라떼"), "라떼");
+  assert.equal(composeHangul("ㅇㅏㄱㄱㅣ", "악기"), "악기");
+});
+
 test("keeps incomplete input visible", () => {
   assert.equal(composeHangul("ㅋ"), "ㅋ");
   assert.equal(composeHangul("ㅋㅓㅍ"), "컾");

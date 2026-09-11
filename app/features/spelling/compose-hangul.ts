@@ -16,12 +16,26 @@ function makeSyllable(initial: string, vowel: string, final = ""): string {
   return String.fromCharCode(0xac00 + INITIALS.indexOf(initial) * 588 + VOWELS.indexOf(vowel) * 28 + FINALS.indexOf(final));
 }
 
+function targetUsesDoubleInitial(target: string, output: string, doubleInitial: string): boolean {
+  if (!target) return false;
+  const targetCharacters = Array.from(target);
+  const syllableIndex = Array.from(output).length;
+  const currentCode = targetCharacters[syllableIndex]?.charCodeAt(0) ?? 0;
+  const nextCode = targetCharacters[syllableIndex + 1]?.charCodeAt(0) ?? 0;
+  if (currentCode < 0xac00 || currentCode > 0xd7a3 || nextCode < 0xac00 || nextCode > 0xd7a3) return false;
+
+  const currentHasNoFinal = (currentCode - 0xac00) % 28 === 0;
+  const nextInitial = INITIALS[Math.floor((nextCode - 0xac00) / 588)];
+  return currentHasNoFinal && nextInitial === doubleInitial;
+}
+
 /** 将页面键盘产生的兼容韩文字母序列组合为现代韩文音节，并保留尚未成音节的输入。 */
-export function composeHangul(jamo: string): string {
+export function composeHangul(jamo: string, target = ""): string {
   let output = "";
   let initial = "";
   let vowel = "";
   let final = "";
+  const characters = Array.from(jamo);
 
   const flush = () => {
     if (initial && vowel) output += makeSyllable(initial, vowel, final);
@@ -31,7 +45,8 @@ export function composeHangul(jamo: string): string {
     final = "";
   };
 
-  for (const character of Array.from(jamo)) {
+  for (let index = 0; index < characters.length; index += 1) {
+    const character = characters[index];
     const isVowel = VOWELS.includes(character);
     const isConsonant = INITIALS.includes(character) || FINALS.includes(character);
 
@@ -75,9 +90,17 @@ export function composeHangul(jamo: string): string {
     } else if (!final && FINALS.includes(character)) {
       final = character;
     } else if (final) {
-      const combined = COMPOUND_FINALS[final + character];
-      if (combined) final = combined;
-      else { flush(); initial = character; }
+      const doubleInitial = DOUBLE_INITIALS[final + character];
+      const nextIsVowel = VOWELS.includes(characters[index + 1]);
+      if (doubleInitial && nextIsVowel && targetUsesDoubleInitial(target, output, doubleInitial)) {
+        final = "";
+        flush();
+        initial = doubleInitial;
+      } else {
+        const combined = COMPOUND_FINALS[final + character];
+        if (combined) final = combined;
+        else { flush(); initial = character; }
+      }
     } else {
       flush();
       initial = character;

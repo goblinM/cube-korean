@@ -338,7 +338,7 @@ export default function Home() {
   function typeKey(key: string) {
     setKeyboardJamo((current) => {
       const next = current + key;
-      setAnswer(composeHangul(next));
+      setAnswer(composeHangul(next, word.korean));
       return next;
     });
   }
@@ -347,7 +347,7 @@ export default function Home() {
     if (keyboardJamo) {
       const next = keyboardJamo.slice(0, -1);
       setKeyboardJamo(next);
-      setAnswer(composeHangul(next));
+      setAnswer(composeHangul(next, word.korean));
     } else {
       setAnswer((current) => current.slice(0, -1));
     }
@@ -601,6 +601,7 @@ export default function Home() {
   const phaseNumber = session.phase === "copy" ? "01" : session.phase === "listen" ? "02" : "03";
   const groupTotal = session.groupSize ? Math.ceil(session.allWordIds.length / session.groupSize) : 1;
   const wordKeystrokes = decomposeHangulToKeystrokes(word.korean).join(" + ");
+  const answerFollowsTarget = followsTargetPrefix(answer, word.korean);
 
   return (
     <main
@@ -651,6 +652,9 @@ export default function Home() {
               <div><span>左右</span><b lang="ko">가 = ㄱ + ㅏ</b></div>
               <div><span>上下</span><b lang="ko">고 = ㄱ + ㅗ</b></div>
               <div><span>有收音</span><b lang="ko">안 = ㅇ + ㅏ + ㄴ</b></div>
+              <div className="double-consonant-tip">
+                <span>双辅音</span><b lang="ko">ㄸ = ㄷ + ㄷ</b><small>连续点两次；ㄲ、ㅃ、ㅆ、ㅉ 同理</small>
+              </div>
             </div>
             <div className="practice-help-legend"><span><i className="legend-correct" />黑色：正确</span><span><i className="legend-wrong" />红色：需修改</span><span><i className="legend-pending" />灰色：未输入</span></div>
             <div className="practice-help-actions">
@@ -673,7 +677,7 @@ export default function Home() {
             // Compare prefixes after decomposing syllable blocks so an IME's
             // unfinished ㅋ is correctly accepted as the beginning of 커.
             const className = typed
-              ? (followsTargetPrefix(answer.slice(0, i + 1), word.korean) ? "correct" : "wrong")
+              ? (answerFollowsTarget || typed === expected ? "correct" : "wrong")
               : "pending";
             return <span className={className} key={i}>{typed || (isCopyPhase ? expected : "＿")}</span>;
           })}

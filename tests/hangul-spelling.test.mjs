@@ -20,12 +20,21 @@ test("returns the actual page-keyboard sequence for Korean spelling hints", () =
   assert.deepEqual(decomposeHangulToKeystrokes("과일"), ["ㄱ", "ㅗ", "ㅏ", "ㅇ", "ㅣ", "ㄹ"]);
   assert.deepEqual(decomposeHangulToKeystrokes("값"), ["ㄱ", "ㅏ", "ㅂ", "ㅅ"]);
   assert.deepEqual(decomposeHangulToKeystrokes("딸기"), ["ㄷ", "ㄷ", "ㅏ", "ㄹ", "ㄱ", "ㅣ"]);
+  assert.deepEqual(decomposeHangulToKeystrokes("라떼"), ["ㄹ", "ㅏ", "ㄷ", "ㄷ", "ㅔ"]);
 });
 
 test("accepts every valid IME prefix for 커피", () => {
   for (const value of ["", "ㅋ", "커", "커ㅍ", "커피"]) {
     assert.equal(followsTargetPrefix(value, "커피"), true, value);
   }
+});
+
+test("accepts a basic consonant while a double initial is being entered", () => {
+  assert.equal(followsTargetPrefix("라", "라떼"), true);
+  assert.equal(followsTargetPrefix("랃", "라떼"), true);
+  assert.equal(followsTargetPrefix("랃ㄷ", "라떼"), true);
+  assert.equal(followsTargetPrefix("라떼", "라떼"), true);
+  assert.equal(followsTargetPrefix("랃데", "라떼"), false);
 });
 
 test("rejects a prefix after its vowel, final, or next syllable diverges", () => {

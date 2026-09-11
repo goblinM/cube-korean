@@ -48,7 +48,17 @@ export function decomposeHangulToKeystrokes(value: string): string[] {
 
 /** 判断当前韩语输入是否仍是目标词的有效组合前缀，避免IME尚未完成音节时提前标红。 */
 export function followsTargetPrefix(value: string, target: string): boolean {
-  return decomposeHangul(target).startsWith(decomposeHangul(value));
+  const typedCharacters = Array.from(value);
+  const targetCharacters = Array.from(target);
+  const isCompletedHangulWord = typedCharacters.length > 0 && typedCharacters.every((character) => {
+    const code = character.charCodeAt(0);
+    return code >= 0xac00 && code <= 0xd7a3;
+  });
+  if (isCompletedHangulWord && typedCharacters.length >= targetCharacters.length) return value === target;
+
+  const typedKeys = decomposeHangulToKeystrokes(value).join("");
+  const targetKeys = decomposeHangulToKeystrokes(target).join("");
+  return targetKeys.startsWith(typedKeys);
 }
 
 /** 判断用户是否已输入完整且完全相同的目标词，用于提交答案和结束当前题目。 */
