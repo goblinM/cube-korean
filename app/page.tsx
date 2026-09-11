@@ -636,25 +636,37 @@ export default function Home() {
           aria-expanded={showGroupWords}
           aria-controls="group-word-list"
           onClick={() => { setShowPracticeHelp(false); setShowGroupWords(true); }}
-        ><span aria-hidden="true">☷</span><small>{groupWords.length}</small></button>
+        >
+          <span className="group-list-icon" aria-hidden="true"><i /><i /><i /></span>
+          <b>词单</b><small>{groupWords.length}</small>
+        </button>
         {showGroupWords && <>
           <button type="button" className="group-list-backdrop" onClick={() => setShowGroupWords(false)} aria-label="关闭本组词单" />
           <aside id="group-word-list" className="group-word-list" role="dialog" aria-modal="true" aria-labelledby="group-word-list-title">
             <header>
-              <div><small>GROUP {session.groupIndex + 1}</small><h2 id="group-word-list-title">本组词单</h2><p>韩文 · 中文 · 发音</p></div>
+              <div>
+                <div className="group-list-meta"><span>第 {session.groupIndex + 1} / {groupTotal} 组</span><em>{groupWords.length} 个词</em></div>
+                <h2 id="group-word-list-title">本组词汇</h2><p>查看释义，或单独播放韩语发音</p>
+              </div>
               <button type="button" onClick={() => setShowGroupWords(false)} aria-label="关闭本组词单">×</button>
             </header>
             <div className="group-word-items">
               {groupWords.map((item, index) => <article className={item.id === word.id ? "current" : ""} key={item.id}>
                 <span>{String(index + 1).padStart(2, "0")}</span>
                 <div><b lang="ko">{item.korean}</b><small>{item.chinese}</small></div>
-                <button type="button" onClick={() => {
-                  void playKorean(item.id, item.korean).then((played) => {
-                    if (!played) setSpeechUnavailable(true);
-                  });
-                }} aria-label={`播放 ${item.korean} 的韩语发音`}>▶</button>
+                <div className="group-word-action">
+                  {item.id === word.id && <em>当前</em>}
+                  <button type="button" onClick={() => {
+                    void playKorean(item.id, item.korean).then((played) => {
+                      if (!played) setSpeechUnavailable(true);
+                    });
+                  }} aria-label={`播放 ${item.korean} 的韩语发音`}>
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M5 10v4h3l4 3V7l-4 3H5Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /><path d="M15 9.2a4 4 0 0 1 0 5.6M17.5 7a7 7 0 0 1 0 10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+                  </button>
+                </div>
               </article>)}
             </div>
+            <footer><span>提示</span>可反复试听，熟悉后再关闭词单继续拼写</footer>
           </aside>
         </>}
       </>}
