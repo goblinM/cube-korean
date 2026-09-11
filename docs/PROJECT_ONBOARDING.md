@@ -21,7 +21,7 @@ Node.js >=22.13.0 → npm install → npm run dev
 | 拼写规则 | `app/features/spelling/hangul.ts` | 音节拆解、IME前缀和最终答案判断 |
 | 页面键盘 | `app/features/spelling/compose-hangul.ts` | 将字母按韩语输入规则组合为音节 |
 | 学习会话 | `app/features/lessons/session.ts` | 看词、听写、错词重练与结果阶段切换 |
-| 续学推荐 | `app/features/lessons/recommendation.ts` | 全局今日推荐与主题内最近未完成关卡定位 |
+| 续学定位 | `app/features/lessons/recommendation.ts` | 切换主题时定位最近未完成关卡 |
 | 本机进度 | `app/features/progress/local-progress.ts` | 读取、校验和更新完成记录、掌握度及复习日期 |
 | 发音适配 | `app/features/speech/korean-speech.ts` | 预生成静态MP3播放、浏览器TTS备用和无语音环境降级 |
 | 音频生成 | `tools/generate-korean-audio.mjs` | 发布前使用Azure Speech生成共享静态MP3和资源清单 |

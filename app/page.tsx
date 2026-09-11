@@ -13,7 +13,7 @@ import {
   submitLessonAnswer,
   summarizeLessonSession,
 } from "./features/lessons/session";
-import { countDueLessons, findChapterContinueLessonId, recommendLesson } from "./features/lessons/recommendation";
+import { findChapterContinueLessonId } from "./features/lessons/recommendation";
 import { markPracticeGuideSeen, shouldShowPracticeGuide } from "./features/lessons/practice-guide";
 import { selectWeakWordIds } from "./features/lessons/weak-review";
 import {
@@ -106,8 +106,6 @@ export default function Home() {
   const wordId = session.queue[session.position];
   const word = words.find((candidate) => candidate.id === wordId) ?? words[0] ?? CHAPTERS[0].lessons[0].words[0];
   const completedLessons = Object.values(progress.lessons);
-  const dueReviewCount = countDueLessons(progress);
-  const recommendation = recommendLesson(CHAPTERS, progress);
   const learningStats = calculateLearningStats(CHAPTERS, progress);
   const activitySummary = summarizeLearningActivity(activity);
   const mistakeEntries = COURSE_WORDS.filter((entry) => {
@@ -513,11 +511,6 @@ export default function Home() {
             <div className="eyebrow">TODAY&apos;S KOREAN</div>
             <h1>听见生活，<br />写出韩语。</h1>
             <p>不从字母表重新开始。直接进入真实生活词汇，用看词拼写和听音默写，把每一个韩语单词真正记下来。</p>
-            <div className="today-card">
-              <div><span>{dueReviewCount ? `今日待复习 ${dueReviewCount} 关` : recommendation.reason === "complete" ? "全部课程已完成" : "推荐继续学习"}</span><strong>{completedLessons.length} / {TOTAL_LESSON_COUNT} 关</strong></div>
-              <div className="mini-progress"><i style={{ width: `${(completedLessons.length / TOTAL_LESSON_COUNT) * 100}%` }} /></div>
-              <button onClick={() => startLesson(recommendation.lessonId, recommendation.chapterId)}>{recommendation.reason === "review" ? "开始今日复习" : recommendation.reason === "complete" ? "巩固第一关" : "继续下一关"}<span>→</span></button>
-            </div>
           </div>
 
           <div className="lesson-map">
