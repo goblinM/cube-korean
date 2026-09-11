@@ -41,7 +41,7 @@ import {
 } from "./features/progress/learning-activity";
 import { playKorean } from "./features/speech/korean-speech";
 import { composeHangul } from "./features/spelling/compose-hangul";
-import { followsTargetPrefix, isExactSpelling } from "./features/spelling/hangul";
+import { decomposeHangulToKeystrokes, followsTargetPrefix, isExactSpelling } from "./features/spelling/hangul";
 
 const LESSON_ICONS: Record<string, string[]> = {
   "daily-food": ["☕", "🍳", "🍚", "🍎", "🥬", "🍰", "🍽️", "🌶️", "🍲", "🥩"],
@@ -600,6 +600,7 @@ export default function Home() {
   const phaseLabel = session.phase === "copy" ? "看词拼写" : session.phase === "listen" ? "听音拼写" : "错词重练";
   const phaseNumber = session.phase === "copy" ? "01" : session.phase === "listen" ? "02" : "03";
   const groupTotal = session.groupSize ? Math.ceil(session.allWordIds.length / session.groupSize) : 1;
+  const wordKeystrokes = decomposeHangulToKeystrokes(word.korean).join(" + ");
 
   return (
     <main
@@ -643,8 +644,14 @@ export default function Home() {
             <small>{isCopyPhase ? "看词拼写说明" : "听音拼写说明"}</small>
             <h2 id="practice-help-title">怎么练？</h2>
             <p>{isCopyPhase
-              ? "上方灰色韩文就是目标答案。请用下面的页面键盘，从头拼写这个韩语单词，不需要输入罗马音。"
-              : "先听韩语发音，再用下面的页面键盘拼写。完全不记得时可以直接查看韩文答案，不必故意答错。"}</p>
+              ? "上方灰色韩文就是目标答案。请按初声、中声、收音的顺序点击下面的页面键盘，不需要输入罗马音。"
+              : "先听韩语发音，再按初声、中声、收音的顺序拼写。完全不记得时可以直接查看韩文答案，不必故意答错。"}</p>
+            <div className="hangul-compose-guide">
+              <strong>韩文按键顺序</strong><span>初声 → 中声 →（收音）</span>
+              <div><span>左右</span><b lang="ko">가 = ㄱ + ㅏ</b></div>
+              <div><span>上下</span><b lang="ko">고 = ㄱ + ㅗ</b></div>
+              <div><span>有收音</span><b lang="ko">안 = ㅇ + ㅏ + ㄴ</b></div>
+            </div>
             <div className="practice-help-legend"><span><i className="legend-correct" />黑色：正确</span><span><i className="legend-wrong" />红色：需修改</span><span><i className="legend-pending" />灰色：未输入</span></div>
             <div className="practice-help-actions">
               {!isCopyPhase && <button type="button" onClick={() => {
@@ -691,7 +698,7 @@ export default function Home() {
         />
 
         <div className="translation"><strong>{word.chinese}</strong>{showEnglish && <span>{word.english}</span>}</div>
-        {revealSpelling && <div className="answer-reveal" role="status"><span>{manualReveal ? "韩文答案" : `提示答案 · ${SPELLING_REVEAL_ERROR_LIMIT}/${SPELLING_REVEAL_ERROR_LIMIT}`}</span><strong lang="ko">{word.korean}</strong><small>重新拼写正确后继续</small></div>}
+        {revealSpelling && <div className="answer-reveal" role="status"><span>{manualReveal ? "韩文答案" : `提示答案 · ${SPELLING_REVEAL_ERROR_LIMIT}/${SPELLING_REVEAL_ERROR_LIMIT}`}</span><strong lang="ko">{word.korean}</strong><div><small>页面键盘顺序</small><b lang="ko">{word.korean} = {wordKeystrokes}</b><em>重新拼写正确后继续</em></div></div>}
         <p aria-live="polite" className={`feedback ${answer && !isExactSpelling(answer, word.korean) ? "error" : ""}`}>{message || (isCopyPhase ? "照着灰色韩文，用下方键盘重新拼写（不是写读音）" : session.phase === "retry" ? "重新写对这个听写错词；不会时可点右侧提示" : "根据发音拼写韩文；不会时可点右侧提示")}</p>
       </section>
 

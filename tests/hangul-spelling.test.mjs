@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   decomposeHangul,
+  decomposeHangulToKeystrokes,
   followsTargetPrefix,
   isExactSpelling,
 } from "../app/features/spelling/hangul.ts";
@@ -11,6 +12,14 @@ test("decomposes syllables including finals and compound vowels", () => {
   assert.equal(decomposeHangul("맥주"), "ㅁㅐㄱㅈㅜ");
   assert.equal(decomposeHangul("과"), "ㄱㅘ");
   assert.equal(decomposeHangul("값"), "ㄱㅏㅄ");
+});
+
+test("returns the actual page-keyboard sequence for Korean spelling hints", () => {
+  assert.deepEqual(decomposeHangulToKeystrokes("안"), ["ㅇ", "ㅏ", "ㄴ"]);
+  assert.deepEqual(decomposeHangulToKeystrokes("커피"), ["ㅋ", "ㅓ", "ㅍ", "ㅣ"]);
+  assert.deepEqual(decomposeHangulToKeystrokes("과일"), ["ㄱ", "ㅗ", "ㅏ", "ㅇ", "ㅣ", "ㄹ"]);
+  assert.deepEqual(decomposeHangulToKeystrokes("값"), ["ㄱ", "ㅏ", "ㅂ", "ㅅ"]);
+  assert.deepEqual(decomposeHangulToKeystrokes("딸기"), ["ㄷ", "ㄷ", "ㅏ", "ㄹ", "ㄱ", "ㅣ"]);
 });
 
 test("accepts every valid IME prefix for 커피", () => {
