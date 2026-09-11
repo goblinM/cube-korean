@@ -624,15 +624,28 @@ export default function Home() {
       <div className="mode-pill"><span>{phaseNumber}</span>{phaseLabel}</div>
 
       <section className="word-stage">
-        <button
-          type="button"
-          className="practice-help-trigger"
-          aria-expanded={showPracticeHelp}
-          aria-controls="practice-help"
-          onClick={() => {
-            setShowPracticeHelp((current) => !current);
-          }}
-        ><b>?</b> 不会写</button>
+        <div className="emoji-card">{word.emoji}</div>
+        <div className="word-actions">
+          <button
+            className="sound-button"
+            disabled={speechUnavailable}
+            onClick={(event) => {
+              event.stopPropagation();
+              void playKorean(word.id, word.korean).then((played) => {
+                if (!played) setSpeechUnavailable(true);
+              });
+            }}
+            aria-label={speechUnavailable ? "韩语发音不可用" : "播放韩语发音"}
+          >▶<span>{speechUnavailable ? "发音不可用" : "听发音"}</span></button>
+          <button
+            type="button"
+            className="practice-help-trigger"
+            aria-label="打开不会写提示"
+            aria-expanded={showPracticeHelp}
+            aria-controls="practice-help"
+            onClick={() => setShowPracticeHelp((current) => !current)}
+          >?</button>
+        </div>
         {showPracticeHelp && <aside id="practice-help" className="practice-help" role="dialog" aria-labelledby="practice-help-title">
           <button type="button" className="practice-help-close" onClick={closePracticeHelp} aria-label="关闭练习说明">×</button>
           <small>{isCopyPhase ? "看词拼写说明" : "听音拼写说明"}</small>
@@ -651,18 +664,6 @@ export default function Home() {
             <button type="button" onClick={closePracticeHelp}>我知道了</button>
           </div>
         </aside>}
-        <div className="emoji-card">{word.emoji}</div>
-        <button
-          className="sound-button"
-          disabled={speechUnavailable}
-          onClick={(event) => {
-            event.stopPropagation();
-            void playKorean(word.id, word.korean).then((played) => {
-              if (!played) setSpeechUnavailable(true);
-            });
-          }}
-          aria-label={speechUnavailable ? "韩语发音不可用" : "播放韩语发音"}
-        >▶<span>{speechUnavailable ? "发音不可用" : "听发音"}</span></button>
         {speechUnavailable && <p className="speech-notice" role="status">当前浏览器无法朗读韩语，仍可继续看词拼写和听写练习。</p>}
 
         <div className="word-display" lang="ko" aria-label={`当前输入 ${answer}`}>
