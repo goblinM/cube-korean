@@ -645,25 +645,25 @@ export default function Home() {
             aria-controls="practice-help"
             onClick={() => setShowPracticeHelp((current) => !current)}
           >?</button>
+          {showPracticeHelp && <aside id="practice-help" className="practice-help" role="dialog" aria-labelledby="practice-help-title">
+            <button type="button" className="practice-help-close" onClick={closePracticeHelp} aria-label="关闭练习说明">×</button>
+            <small>{isCopyPhase ? "看词拼写说明" : "听音拼写说明"}</small>
+            <h2 id="practice-help-title">怎么练？</h2>
+            <p>{isCopyPhase
+              ? "上方灰色韩文就是目标答案。请用下面的页面键盘，从头拼写这个韩语单词，不需要输入罗马音。"
+              : "先听韩语发音，再用下面的页面键盘拼写。完全不记得时可以直接查看韩文答案，不必故意答错。"}</p>
+            <div className="practice-help-legend"><span><i className="legend-correct" />黑色：正确</span><span><i className="legend-wrong" />红色：需修改</span><span><i className="legend-pending" />灰色：未输入</span></div>
+            <div className="practice-help-actions">
+              {!isCopyPhase && <button type="button" onClick={() => {
+                void playKorean(word.id, word.korean).then((played) => {
+                  if (!played) setSpeechUnavailable(true);
+                });
+              }}>再听一次</button>}
+              <button type="button" className="reveal-action" onClick={revealCurrentSpelling}>显示韩文答案</button>
+              <button type="button" onClick={closePracticeHelp}>我知道了</button>
+            </div>
+          </aside>}
         </div>
-        {showPracticeHelp && <aside id="practice-help" className="practice-help" role="dialog" aria-labelledby="practice-help-title">
-          <button type="button" className="practice-help-close" onClick={closePracticeHelp} aria-label="关闭练习说明">×</button>
-          <small>{isCopyPhase ? "看词拼写说明" : "听音拼写说明"}</small>
-          <h2 id="practice-help-title">怎么练？</h2>
-          <p>{isCopyPhase
-            ? "上方灰色韩文就是目标答案。请用下面的页面键盘，从头拼写这个韩语单词，不需要输入罗马音。"
-            : "先听韩语发音，再用下面的页面键盘拼写。完全不记得时可以直接查看韩文答案，不必故意答错。"}</p>
-          <div className="practice-help-legend"><span><i className="legend-correct" />黑色：正确</span><span><i className="legend-wrong" />红色：需修改</span><span><i className="legend-pending" />灰色：未输入</span></div>
-          <div className="practice-help-actions">
-            {!isCopyPhase && <button type="button" onClick={() => {
-              void playKorean(word.id, word.korean).then((played) => {
-                if (!played) setSpeechUnavailable(true);
-              });
-            }}>再听一次</button>}
-            <button type="button" className="reveal-action" onClick={revealCurrentSpelling}>显示韩文答案</button>
-            <button type="button" onClick={closePracticeHelp}>我知道了</button>
-          </div>
-        </aside>}
         {speechUnavailable && <p className="speech-notice" role="status">当前浏览器无法朗读韩语，仍可继续看词拼写和听写练习。</p>}
 
         <div className="word-display" lang="ko" aria-label={`当前输入 ${answer}`}>
