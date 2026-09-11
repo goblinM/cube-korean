@@ -85,6 +85,7 @@ export default function Home() {
   const [keyboardJamo, setKeyboardJamo] = useState("");
   const [message, setMessage] = useState("");
   const [showPracticeHelp, setShowPracticeHelp] = useState(false);
+  const [showGroupWords, setShowGroupWords] = useState(false);
   const [manualReveal, setManualReveal] = useState(false);
   const [showEnglish, setShowEnglish] = useState(true);
   const [nativeKeyboard, setNativeKeyboard] = useState(true);
@@ -116,6 +117,10 @@ export default function Home() {
   });
   const weakWordIds = selectWeakWordIds(COURSE_WORDS, progress);
   const hasNextGroup = hasNextLessonGroup(session);
+  const groupWords = session.originalWordIds.flatMap((id) => {
+    const entry = words.find((candidate) => candidate.id === id);
+    return entry ? [entry] : [];
+  });
   const filterLessons = mistakeChapterFilter === "all"
     ? CHAPTERS.flatMap((item) => item.lessons)
     : CHAPTERS.find((item) => item.id === mistakeChapterFilter)?.lessons ?? [];
@@ -223,6 +228,15 @@ export default function Home() {
   }, [session.phase, session.position, word.id]);
 
   useEffect(() => {
+    if (!showGroupWords) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowGroupWords(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [showGroupWords]);
+
+  useEffect(() => {
     if (!preferencesReady || !started || session.phase === "results") return;
     if (!nativeKeyboard) {
       inputRef.current?.blur();
@@ -267,6 +281,7 @@ export default function Home() {
     setAnswer("");
     setKeyboardJamo("");
     setMessage("");
+    setShowGroupWords(false);
     setResultSaved(false);
     setStarted(true);
     if (nativeKeyboard) window.setTimeout(() => inputRef.current?.focus(), 100);
@@ -286,6 +301,7 @@ export default function Home() {
     setAnswer("");
     setKeyboardJamo("");
     setMessage("");
+    setShowGroupWords(false);
     setResultSaved(false);
     setStarted(true);
     if (nativeKeyboard) window.setTimeout(() => inputRef.current?.focus(), 100);
@@ -296,6 +312,7 @@ export default function Home() {
     setAnswer("");
     setKeyboardJamo("");
     setMessage("");
+    setShowGroupWords(false);
     if (nativeKeyboard) window.setTimeout(() => inputRef.current?.focus(), 100);
   }
 
@@ -606,10 +623,41 @@ export default function Home() {
   return (
     <main
       className="practice-page"
-      onClickCapture={() => {
+      onClickCapture={(event) => {
+        if ((event.target as HTMLElement).closest(".group-list-trigger,.group-word-list,.group-list-backdrop")) return;
         if (nativeKeyboard) inputRef.current?.focus({ preventScroll: true });
       }}
     >
+      {practiceMode === "lesson" && <>
+        <button
+          type="button"
+          className="group-list-trigger"
+          aria-label={`查看第 ${session.groupIndex + 1} 组词单`}
+          aria-expanded={showGroupWords}
+          aria-controls="group-word-list"
+          onClick={() => { setShowPracticeHelp(false); setShowGroupWords(true); }}
+        ><span aria-hidden="true">☷</span><small>{groupWords.length}</small></button>
+        {showGroupWords && <>
+          <button type="button" className="group-list-backdrop" onClick={() => setShowGroupWords(false)} aria-label="关闭本组词单" />
+          <aside id="group-word-list" className="group-word-list" role="dialog" aria-modal="true" aria-labelledby="group-word-list-title">
+            <header>
+              <div><small>GROUP {session.groupIndex + 1}</small><h2 id="group-word-list-title">本组词单</h2><p>韩文 · 中文 · 发音</p></div>
+              <button type="button" onClick={() => setShowGroupWords(false)} aria-label="关闭本组词单">×</button>
+            </header>
+            <div className="group-word-items">
+              {groupWords.map((item, index) => <article className={item.id === word.id ? "current" : ""} key={item.id}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <div><b lang="ko">{item.korean}</b><small>{item.chinese}</small></div>
+                <button type="button" onClick={() => {
+                  void playKorean(item.id, item.korean).then((played) => {
+                    if (!played) setSpeechUnavailable(true);
+                  });
+                }} aria-label={`播放 ${item.korean} 的韩语发音`}>▶</button>
+              </article>)}
+            </div>
+          </aside>
+        </>}
+      </>}
       <header className="practice-header">
         <button className="icon-button" onClick={() => setStarted(false)} aria-label="退出练习">×</button>
         <div className="progress-track" role="progressbar" aria-label="本轮学习进度" aria-valuemin={0} aria-valuemax={session.queue.length} aria-valuenow={session.position + 1}><span style={{ width: `${lessonProgressPercent}%` }} /></div>
@@ -638,7 +686,7 @@ export default function Home() {
             aria-label="打开不会写提示"
             aria-expanded={showPracticeHelp}
             aria-controls="practice-help"
-            onClick={() => setShowPracticeHelp((current) => !current)}
+            onClick={() => { setShowGroupWords(false); setShowPracticeHelp((current) => !current); }}
           >?</button>
           {showPracticeHelp && <aside id="practice-help" className="practice-help" role="dialog" aria-labelledby="practice-help-title">
             <button type="button" className="practice-help-close" onClick={closePracticeHelp} aria-label="关闭练习说明">×</button>
