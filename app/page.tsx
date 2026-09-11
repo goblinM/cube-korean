@@ -638,7 +638,7 @@ export default function Home() {
           onClick={() => { setShowPracticeHelp(false); setShowGroupWords(true); }}
         >
           <span className="group-list-icon" aria-hidden="true"><i /><i /><i /></span>
-          <b>词单</b><small>{groupWords.length}</small>
+          <small>{groupWords.length}</small>
         </button>
         {showGroupWords && <>
           <button type="button" className="group-list-backdrop" onClick={() => setShowGroupWords(false)} aria-label="关闭本组词单" />
