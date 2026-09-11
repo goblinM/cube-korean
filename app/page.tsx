@@ -209,10 +209,14 @@ export default function Home() {
   }, [started, word.id, word.korean, session.phase, muted]);
 
   useEffect(() => {
-    if (!started || !nativeKeyboard || session.phase === "results") return;
+    if (!preferencesReady || !started || session.phase === "results") return;
+    if (!nativeKeyboard) {
+      inputRef.current?.blur();
+      return;
+    }
     const timer = window.setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 0);
     return () => window.clearTimeout(timer);
-  }, [nativeKeyboard, session.phase, session.position, started]);
+  }, [nativeKeyboard, preferencesReady, session.phase, session.position, started]);
 
   useEffect(() => {
     if (session.phase !== "results" || resultSaved || hasNextGroup) return;
@@ -251,7 +255,7 @@ export default function Home() {
     setMessage("");
     setResultSaved(false);
     setStarted(true);
-    window.setTimeout(() => inputRef.current?.focus(), 100);
+    if (nativeKeyboard) window.setTimeout(() => inputRef.current?.focus(), 100);
   }
 
   function selectChapter(chapterId: string) {
@@ -270,7 +274,7 @@ export default function Home() {
     setMessage("");
     setResultSaved(false);
     setStarted(true);
-    window.setTimeout(() => inputRef.current?.focus(), 100);
+    if (nativeKeyboard) window.setTimeout(() => inputRef.current?.focus(), 100);
   }
 
   function startNextGroup() {
@@ -278,7 +282,7 @@ export default function Home() {
     setAnswer("");
     setKeyboardJamo("");
     setMessage("");
-    window.setTimeout(() => inputRef.current?.focus(), 100);
+    if (nativeKeyboard) window.setTimeout(() => inputRef.current?.focus(), 100);
   }
 
   function submit() {
@@ -322,7 +326,6 @@ export default function Home() {
       setAnswer(composeHangul(next));
       return next;
     });
-    inputRef.current?.focus();
   }
 
   function deleteKey() {
@@ -609,6 +612,8 @@ export default function Home() {
           className="hidden-input"
           value={answer}
           lang="ko"
+          inputMode={nativeKeyboard ? "text" : "none"}
+          readOnly={!nativeKeyboard}
           autoCapitalize="none"
           autoComplete="off"
           onChange={(event) => {
@@ -639,9 +644,14 @@ export default function Home() {
         </div>}
         <div className="bottom-actions">
           <button className="native" onClick={() => {
-            if (nativeKeyboard) setKeyboardJamo("");
-            setNativeKeyboard(!nativeKeyboard);
-            setTimeout(() => inputRef.current?.focus(), 50);
+            const useNativeKeyboard = !nativeKeyboard;
+            setNativeKeyboard(useNativeKeyboard);
+            if (useNativeKeyboard) {
+              setKeyboardJamo("");
+              window.setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 50);
+            } else {
+              inputRef.current?.blur();
+            }
           }}>{nativeKeyboard ? "显示页面键盘" : "使用系统韩语键盘"}</button>
           <button className="check" disabled={!answer} onClick={submit}>检查答案 <span>↵</span></button>
         </div>
