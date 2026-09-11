@@ -14,6 +14,7 @@ import {
   summarizeLessonSession,
 } from "./features/lessons/session";
 import { countDueLessons, findChapterContinueLessonId, recommendLesson } from "./features/lessons/recommendation";
+import { markPracticeGuideSeen, shouldShowPracticeGuide } from "./features/lessons/practice-guide";
 import { selectWeakWordIds } from "./features/lessons/weak-review";
 import {
   createEmptyProgress,
@@ -83,6 +84,8 @@ export default function Home() {
   const [answer, setAnswer] = useState("");
   const [keyboardJamo, setKeyboardJamo] = useState("");
   const [message, setMessage] = useState("");
+  const [showPracticeHelp, setShowPracticeHelp] = useState(false);
+  const [manualReveal, setManualReveal] = useState(false);
   const [showEnglish, setShowEnglish] = useState(true);
   const [nativeKeyboard, setNativeKeyboard] = useState(true);
   const [muted, setMuted] = useState(false);
@@ -209,6 +212,19 @@ export default function Home() {
   }, [started, word.id, word.korean, session.phase, muted]);
 
   useEffect(() => {
+    if (!started || session.phase === "results") return;
+    const timer = window.setTimeout(() => {
+      if (shouldShowPracticeGuide(window.localStorage)) setShowPracticeHelp(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [session.phase, started]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setManualReveal(false), 0);
+    return () => window.clearTimeout(timer);
+  }, [session.phase, session.position, word.id]);
+
+  useEffect(() => {
     if (!preferencesReady || !started || session.phase === "results") return;
     if (!nativeKeyboard) {
       inputRef.current?.blur();
@@ -287,6 +303,7 @@ export default function Home() {
 
   function submit() {
     if (isExactSpelling(answer, word.korean)) {
+      setShowPracticeHelp(false);
       setMessage("정답이에요! 拼写正确");
       window.setTimeout(() => {
         setSession((current) => submitLessonAnswer(current, word.id, true));
@@ -310,8 +327,8 @@ export default function Home() {
       setMessage(session.phase !== "copy" && nextErrorCount >= SPELLING_REVEAL_ERROR_LIMIT
         ? `已显示答案（${SPELLING_REVEAL_ERROR_LIMIT}/${SPELLING_REVEAL_ERROR_LIMIT}），请重新输入正确拼写`
         : session.phase !== "copy"
-          ? `再听一次，修改红色的位置（${nextErrorCount}/${SPELLING_REVEAL_ERROR_LIMIT}）`
-          : "修改红色的位置后再检查");
+          ? `这次拼写不正确（${nextErrorCount}/${SPELLING_REVEAL_ERROR_LIMIT}）。红色是错误部分，可再听一次或点“不会写？”`
+          : "红色部分不正确，请按删除键后重新输入");
       if (!muted) {
         void playKorean(word.id, word.korean).then((played) => {
           if (!played) setSpeechUnavailable(true);
@@ -336,6 +353,34 @@ export default function Home() {
     } else {
       setAnswer((current) => current.slice(0, -1));
     }
+  }
+
+  function closePracticeHelp() {
+    markPracticeGuideSeen(window.localStorage);
+    setShowPracticeHelp(false);
+  }
+
+  function revealCurrentSpelling() {
+    if (manualReveal) {
+      closePracticeHelp();
+      return;
+    }
+    setManualReveal(true);
+    closePracticeHelp();
+    setMessage(session.phase === "copy"
+      ? "请照着韩文答案重新拼写；这是韩文拼写，不是罗马音"
+      : "已显示韩文答案，本词会按错词记录；请照着答案重新拼写");
+    if (session.phase === "copy") return;
+
+    const isNewLessonMistake = practiceMode === "lesson" && !session.mistakeIds.includes(word.id);
+    if (isNewLessonMistake) {
+      setProgress((current) => {
+        const updated = recordLessonMistake(current, lesson.id, word.id);
+        writeProgress(window.localStorage, updated);
+        return updated;
+      });
+    }
+    setSession((current) => submitLessonAnswer(current, word.id, false));
   }
 
   function downloadLearningBackup() {
@@ -556,7 +601,7 @@ export default function Home() {
   }
 
   const isCopyPhase = session.phase === "copy";
-  const revealSpelling = shouldRevealSpelling(session);
+  const revealSpelling = manualReveal || shouldRevealSpelling(session);
   const displayLength = Math.max(word.korean.length, answer.length);
   const lessonProgressPercent = ((session.position + 1) / session.queue.length) * 100;
   const phaseLabel = session.phase === "copy" ? "看词拼写" : session.phase === "listen" ? "听音拼写" : "错词重练";
@@ -579,6 +624,33 @@ export default function Home() {
       <div className="mode-pill"><span>{phaseNumber}</span>{phaseLabel}</div>
 
       <section className="word-stage">
+        <button
+          type="button"
+          className="practice-help-trigger"
+          aria-expanded={showPracticeHelp}
+          aria-controls="practice-help"
+          onClick={() => {
+            setShowPracticeHelp((current) => !current);
+          }}
+        ><b>?</b> 不会写</button>
+        {showPracticeHelp && <aside id="practice-help" className="practice-help" role="dialog" aria-labelledby="practice-help-title">
+          <button type="button" className="practice-help-close" onClick={closePracticeHelp} aria-label="关闭练习说明">×</button>
+          <small>{isCopyPhase ? "看词拼写说明" : "听音拼写说明"}</small>
+          <h2 id="practice-help-title">怎么练？</h2>
+          <p>{isCopyPhase
+            ? "上方灰色韩文就是目标答案。请用下面的页面键盘，从头拼写这个韩语单词，不需要输入罗马音。"
+            : "先听韩语发音，再用下面的页面键盘拼写。完全不记得时可以直接查看韩文答案，不必故意答错。"}</p>
+          <div className="practice-help-legend"><span><i className="legend-correct" />黑色：正确</span><span><i className="legend-wrong" />红色：需修改</span><span><i className="legend-pending" />灰色：未输入</span></div>
+          <div className="practice-help-actions">
+            {!isCopyPhase && <button type="button" onClick={() => {
+              void playKorean(word.id, word.korean).then((played) => {
+                if (!played) setSpeechUnavailable(true);
+              });
+            }}>再听一次</button>}
+            <button type="button" className="reveal-action" onClick={revealCurrentSpelling}>显示韩文答案</button>
+            <button type="button" onClick={closePracticeHelp}>我知道了</button>
+          </div>
+        </aside>}
         <div className="emoji-card">{word.emoji}</div>
         <button
           className="sound-button"
@@ -625,8 +697,8 @@ export default function Home() {
         />
 
         <div className="translation"><strong>{word.chinese}</strong>{showEnglish && <span>{word.english}</span>}</div>
-        {revealSpelling && <div className="answer-reveal" role="status"><span>提示答案 · {SPELLING_REVEAL_ERROR_LIMIT}/{SPELLING_REVEAL_ERROR_LIMIT}</span><strong lang="ko">{word.korean}</strong><small>重新拼写正确后继续</small></div>}
-        <p aria-live="polite" className={`feedback ${answer && !isExactSpelling(answer, word.korean) ? "error" : ""}`}>{message || (isCopyPhase ? "照着上面的韩文输入一遍" : session.phase === "retry" ? "重新写对这个听写错词" : "根据读音写出这个单词")}</p>
+        {revealSpelling && <div className="answer-reveal" role="status"><span>{manualReveal ? "韩文答案" : `提示答案 · ${SPELLING_REVEAL_ERROR_LIMIT}/${SPELLING_REVEAL_ERROR_LIMIT}`}</span><strong lang="ko">{word.korean}</strong><small>重新拼写正确后继续</small></div>}
+        <p aria-live="polite" className={`feedback ${answer && !isExactSpelling(answer, word.korean) ? "error" : ""}`}>{message || (isCopyPhase ? "照着灰色韩文，用下方键盘重新拼写（不是写读音）" : session.phase === "retry" ? "重新写对这个听写错词；不会时可点右侧提示" : "根据发音拼写韩文；不会时可点右侧提示")}</p>
       </section>
 
       <section className="keyboard-area">
