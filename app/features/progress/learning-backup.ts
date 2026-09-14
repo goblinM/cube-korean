@@ -12,6 +12,7 @@ import { COFFEE_TIP_STORAGE_KEY } from "./coffee-tip.ts";
 import { LEARNING_LOCATION_STORAGE_KEY, readLearningLocation, type LearningLocation } from "./learning-location.ts";
 import {
   LEARNING_PREFERENCES_STORAGE_KEY,
+  normalizeLearningPreferences,
   readLearningPreferences,
   type LearningPreferences,
 } from "./learning-preferences.ts";
@@ -56,20 +57,11 @@ function containsOnlyCurrentCourse(progress: CourseProgress, chapters: Chapter[]
     && Object.entries(progress.mistakes).every(([wordId, mistake]) => wordIds.has(wordId) && lessonIds.has(mistake.lessonId));
 }
 
-function isLearningPreferences(value: unknown): value is LearningPreferences {
-  if (!value || typeof value !== "object") return false;
-  const candidate = value as Partial<LearningPreferences>;
-  return candidate.version === 1
-    && typeof candidate.showEnglish === "boolean"
-    && typeof candidate.nativeKeyboard === "boolean"
-    && typeof candidate.muted === "boolean"
-    && (candidate.autoConfirm === undefined || typeof candidate.autoConfirm === "boolean");
-}
-
 /** 校验并恢复备份；任何字段无效时拒绝整份文件，避免覆盖当前有效进度。 */
 export function restoreLearningBackup(storage: BackupStorage, chapters: Chapter[], raw: string): LearningBackup {
   const parsed = JSON.parse(raw) as Partial<LearningBackup>;
-  if (parsed.version !== 1 || !isValidExportDate(parsed.exportedAt) || !isCourseProgress(parsed.progress) || !containsOnlyCurrentCourse(parsed.progress, chapters) || !isLearningPreferences(parsed.preferences)) {
+  const preferences = normalizeLearningPreferences(parsed.preferences);
+  if (parsed.version !== 1 || !isValidExportDate(parsed.exportedAt) || !isCourseProgress(parsed.progress) || !containsOnlyCurrentCourse(parsed.progress, chapters) || !preferences) {
     throw new Error("备份文件格式不正确或不属于当前课程");
   }
   if (parsed.activity !== undefined && !isLearningActivity(parsed.activity)) throw new Error("备份中的学习历史无效");
@@ -81,7 +73,7 @@ export function restoreLearningBackup(storage: BackupStorage, chapters: Chapter[
 
   const backup = {
     ...parsed,
-    preferences: { ...parsed.preferences, autoConfirm: parsed.preferences.autoConfirm ?? true },
+    preferences,
   } as LearningBackup;
   storage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(backup.progress));
   storage.setItem(LEARNING_PREFERENCES_STORAGE_KEY, JSON.stringify(backup.preferences));

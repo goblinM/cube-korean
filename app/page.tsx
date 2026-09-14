@@ -30,7 +30,7 @@ import {
 } from "./features/progress/local-progress";
 import { readLearningLocation, writeLearningLocation } from "./features/progress/learning-location";
 import { clearLearningCheckpoint, readLearningCheckpoint, writeLearningCheckpoint } from "./features/progress/learning-checkpoint";
-import { readLearningPreferences, writeLearningPreferences } from "./features/progress/learning-preferences";
+import { readLearningPreferences, writeLearningPreferences, type TranslationMode } from "./features/progress/learning-preferences";
 import { clearAllLearningData, createLearningBackup, restoreLearningBackup } from "./features/progress/learning-backup";
 import { calculateLearningStats } from "./features/progress/learning-stats";
 import { dismissFutureCoffeeTips, getCoffeeTipMilestone, markCoffeeTipShown, readCoffeeTipState } from "./features/progress/coffee-tip";
@@ -101,7 +101,7 @@ export default function Home() {
   const [showGroupWords, setShowGroupWords] = useState(false);
   const [showPracticeOptions, setShowPracticeOptions] = useState(false);
   const [manualReveal, setManualReveal] = useState(false);
-  const [showEnglish, setShowEnglish] = useState(true);
+  const [translationMode, setTranslationMode] = useState<TranslationMode>("ko-zh-en");
   const [nativeKeyboard, setNativeKeyboard] = useState(true);
   const [muted, setMuted] = useState(false);
   const [autoConfirm, setAutoConfirm] = useState(true);
@@ -163,7 +163,7 @@ export default function Home() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const preferences = readLearningPreferences(window.localStorage);
-      setShowEnglish(preferences.showEnglish);
+      setTranslationMode(preferences.translationMode);
       setNativeKeyboard(preferences.nativeKeyboard);
       setMuted(preferences.muted);
       setAutoConfirm(preferences.autoConfirm);
@@ -174,8 +174,8 @@ export default function Home() {
 
   useEffect(() => {
     if (!preferencesReady) return;
-    writeLearningPreferences(window.localStorage, { showEnglish, nativeKeyboard, muted, autoConfirm });
-  }, [autoConfirm, muted, nativeKeyboard, preferencesReady, showEnglish]);
+    writeLearningPreferences(window.localStorage, { translationMode, nativeKeyboard, muted, autoConfirm });
+  }, [autoConfirm, muted, nativeKeyboard, preferencesReady, translationMode]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -748,7 +748,7 @@ export default function Home() {
     <main
       className="practice-page"
       onClickCapture={(event) => {
-        if ((event.target as HTMLElement).closest(".group-list-trigger,.group-word-list,.group-list-backdrop,.practice-options-trigger,.practice-options-dialog,.practice-options-backdrop")) return;
+        if ((event.target as HTMLElement).closest(".group-list-trigger,.group-word-list,.group-list-backdrop,.practice-options-trigger,.practice-options-dialog,.practice-options-backdrop,.translation-mode-select")) return;
         if (nativeKeyboard) inputRef.current?.focus({ preventScroll: true });
       }}
     >
@@ -920,7 +920,7 @@ export default function Home() {
           aria-label="输入韩语拼写"
         />
 
-        <div className="translation"><strong>{word.chinese}</strong>{showEnglish && <span>{word.english}</span>}</div>
+        <div className="translation">{translationMode !== "ko-en" && <strong>{word.chinese}</strong>}{translationMode !== "ko-zh" && <span>{word.english}</span>}</div>
         {revealSpelling && <div className="answer-reveal" role="status"><span>{manualReveal ? "韩文答案" : `提示答案 · ${SPELLING_REVEAL_ERROR_LIMIT}/${SPELLING_REVEAL_ERROR_LIMIT}`}</span><strong lang="ko">{word.korean}</strong><div><small>页面键盘顺序</small><b lang="ko">{word.korean} = {wordKeystrokes}</b><em>重新拼写正确后继续</em></div></div>}
         <p aria-live="polite" className={`feedback ${answer && !answerFollowsTarget ? "error" : ""}`}>{message || (isCopyPhase ? `照着灰色韩文，用${nativeKeyboard ? "系统韩语键盘" : "下方键盘"}重新拼写（不是写读音）` : session.phase === "retry" ? "重新写对这个听写错词；不会时可点右侧提示" : "根据发音拼写韩文；不会时可点右侧提示")}</p>
       </section>
@@ -928,7 +928,11 @@ export default function Home() {
       <section className="keyboard-area">
         <div className="utility-row">
           <button onClick={() => setMuted(!muted)}>{muted ? "🔇" : "🔊"} 自动发音</button>
-          <button onClick={() => setShowEnglish(!showEnglish)}>EN {showEnglish ? "开启" : "关闭"}</button>
+          <select className="translation-mode-select" aria-label="释义显示模式" value={translationMode} onChange={(event) => setTranslationMode(event.target.value as TranslationMode)}>
+            <option value="ko-zh-en">韩中英</option>
+            <option value="ko-zh">韩中</option>
+            <option value="ko-en">韩英</option>
+          </select>
           {!nativeKeyboard && <button aria-pressed={autoConfirm} onClick={() => setAutoConfirm(!autoConfirm)}>✓ {autoConfirm ? "拼对即过" : "手动确认"}</button>}
           <button onClick={() => { setAnswer(""); setKeyboardJamo(""); setMessage(""); }}>↻ 重来</button>
         </div>
