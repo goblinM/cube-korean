@@ -38,6 +38,8 @@ Cloudflare 构建配置：
 
 `npm run build` 会由 Vinext 和 Cloudflare Vite 插件生成 `dist/server/wrangler.json`、Worker 入口与静态资源。部署命令必须读取这份生成配置，否则 Wrangler 无法找到正确入口和资源目录。
 
+构建变量 `CUBE_WORKER_NAME` 决定生成配置中的 Worker 名；未设置时仍为 `cube-korean`。后续创建测试 Worker `cube-korean-dev` 时，在该项目的 Cloudflare Builds 构建变量中设置 `CUBE_WORKER_NAME=cube-korean-dev`；正式 Worker 设置为 `cube-korean`。构建后应检查 `dist/server/wrangler.json` 的 `name` 与 Cloudflare 项目名一致。此变量只选择部署目标，不会自动创建 Worker、切换 Git 分支或绑定域名。
+
 ## 3. 日常发布
 
 发布前在本机执行：
@@ -73,12 +75,12 @@ git push origin main
 
 ## 5. 接入独立域名 `cubekorean.top`
 
-`cubekorean.top` 在阿里云注册，已添加到当前 Cloudflare 账户且域名状态为 Active。它复用现有 `cube-korean` Worker 和 GitHub `main` 自动部署链路，无需新建 Pages 项目、Worker 或构建任务。域名 DNS Active 只代表 Cloudflare 已接管解析，不代表网站已绑定成功。
+`cubekorean.top` 在阿里云注册，已添加到当前 Cloudflare 账户且域名状态为 Active。域名 DNS Active 只代表 Cloudflare 已接管解析，不代表网站已绑定成功。计划将它绑定到正式 Worker `cube-korean`；原地址 `korean.amolabs.top` 后续绑定到独立的测试 Worker `cube-korean-dev`，两个域名才会分别显示 `release` 与 `develop` 分支的版本。分支与 Worker 的迁移尚需在 GitHub 和 Cloudflare 完成。
 
 1. 若需复现域名接入：在 Cloudflare `Domains → Onboard a domain` 添加 `cubekorean.top`；到阿里云**域名控制台**的 `域名列表 → cubekorean.top → 管理 → DNS 管理 → DNS 修改`，将 DNS 服务器设置为 Cloudflare 为**该域名**分配的两条 Nameserver，并删除其他 Nameserver。此操作不是在阿里云“云解析 DNS”中添加 NS 解析记录。如原域名启用了 DNSSEC，先在阿里云移除旧 DS 记录。等待 Cloudflare 域名状态变为 Active。
 2. 在 Cloudflare 打开 `Workers & Pages → cube-korean → Domains`，选择 `Add → Custom Domain`，填写 `cubekorean.top` 并确认。若界面没有独立的 `Domains` 页，使用 `Settings → Domains & Routes → Add → Custom Domain`。Cloudflare 会自动创建该 Worker 的 DNS 记录并签发 HTTPS 证书，不要手工创建指向 Worker 的 CNAME。
-3. 等 Worker 的自定义域名状态变为 Active，访问 `https://cubekorean.top`，验证首页、开始关卡、韩语输入和音频播放。再检查 `cube-korean → Deployments` 中生产版本正常；后续推送 `main` 会更新同一个 Worker 的所有已绑定域名。
-4. 暂时保留 `korean.amolabs.top`。学习记录保存在浏览器当前域名的 `localStorage`，不会随域名切换自动迁移。已有用户先在旧站“备份与恢复”下载 JSON，再在新站恢复；待迁移完成后，再决定是否给旧域名配置 301 跳转。
+3. 等 Worker 的自定义域名状态变为 Active，访问 `https://cubekorean.top`，验证首页、开始关卡、韩语输入和音频播放。再检查 `cube-korean → Deployments` 中生产版本正常。
+4. 学习记录保存在浏览器当前域名的 `localStorage`，不会随域名切换自动迁移。已有用户先在旧站“备份与恢复”下载 JSON，再在新站恢复。原地址计划用作测试环境，不应配置到正式域名的 301 跳转。
 
 `www.cubekorean.top` 是不同主机名。如需支持 `www`，另行绑定为自定义域名，或配置指向 `https://cubekorean.top` 的重定向。
 
