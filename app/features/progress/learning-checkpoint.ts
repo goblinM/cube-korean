@@ -46,6 +46,8 @@ export function readLearningCheckpoint(storage: StorageReader, chapters: Chapter
       || !isStringArray(parsed.reviewWordIds)
       || !session
       || !["copy", "listen", "retry", "results"].includes(session.phase ?? "")
+      || (session.startPhase !== undefined && session.startPhase !== "copy" && session.startPhase !== "listen")
+      || (session.groupOnly !== undefined && typeof session.groupOnly !== "boolean")
       || !isStringArray(session.queue)
       || !session.queue.length
       || !isStringArray(session.originalWordIds)
@@ -71,6 +73,9 @@ export function readLearningCheckpoint(storage: StorageReader, chapters: Chapter
       || session.completedFirstListenCorrect > session.allWordIds.length
       || !isStringArray(session.completedMistakeIds)
       || (session.groupSize !== null && (session.groupIndex ?? 0) * session.groupSize >= session.allWordIds.length)
+      || (session.groupOnly === true && (parsed.practiceMode !== "lesson" || session.groupSize === null
+        || session.originalWordIds.length !== session.allWordIds.slice(session.groupIndex! * session.groupSize, (session.groupIndex! + 1) * session.groupSize).length
+        || session.originalWordIds.some((id, index) => id !== session.allWordIds![(session.groupIndex! * session.groupSize!) + index])))
     ) return null;
 
     const allWordIds = new Set(chapters.flatMap((item) => item.lessons.flatMap((entry) => entry.words.map((word) => word.id))));

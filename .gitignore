@@ -13,6 +13,8 @@
 # testing
 /coverage
 /.eslintcache
+/playwright-report/
+/test-results/
 
 # next.js
 /.next/
@@ -52,5 +54,3 @@ yarn-error.log*
 # local editor settings
 /.idea/
 /.vscode/
-
-/docs/

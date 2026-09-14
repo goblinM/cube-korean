@@ -36,6 +36,7 @@ test("exports and restores validated progress, preferences, and location", () =>
   const restored = restoreLearningBackup(target, [dailyFoodChapter], raw);
   assert.equal(restored.progress.lessons[lesson.id].bestAccuracy, 90);
   assert.equal(JSON.parse(target.getItem(LEARNING_PREFERENCES_STORAGE_KEY)).muted, true);
+  assert.equal(JSON.parse(target.getItem(LEARNING_PREFERENCES_STORAGE_KEY)).autoConfirm, true);
   assert.equal(target.getItem(LEARNING_CHECKPOINT_STORAGE_KEY), null);
   assert.equal(JSON.parse(target.getItem(LEARNING_ACTIVITY_STORAGE_KEY)).days["2026-09-09"].sessions, 1);
   assert.equal(target.getItem(DAILY_GOAL_STORAGE_KEY), "2");
@@ -64,6 +65,7 @@ test("restores a pre-activity backup with default daily tracking settings", () =
   });
   const storage = memoryStorage();
   restoreLearningBackup(storage, [dailyFoodChapter], oldBackup);
+  assert.equal(JSON.parse(storage.getItem(LEARNING_PREFERENCES_STORAGE_KEY)).autoConfirm, true);
   assert.equal(storage.getItem(LEARNING_ACTIVITY_STORAGE_KEY), null);
   assert.equal(storage.getItem(DAILY_GOAL_STORAGE_KEY), "1");
 });

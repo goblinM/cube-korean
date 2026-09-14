@@ -8,6 +8,7 @@ import {
   type LearningActivity,
 } from "./learning-activity.ts";
 import { LEARNING_CHECKPOINT_STORAGE_KEY } from "./learning-checkpoint.ts";
+import { COFFEE_TIP_STORAGE_KEY } from "./coffee-tip.ts";
 import { LEARNING_LOCATION_STORAGE_KEY, readLearningLocation, type LearningLocation } from "./learning-location.ts";
 import {
   LEARNING_PREFERENCES_STORAGE_KEY,
@@ -61,7 +62,8 @@ function isLearningPreferences(value: unknown): value is LearningPreferences {
   return candidate.version === 1
     && typeof candidate.showEnglish === "boolean"
     && typeof candidate.nativeKeyboard === "boolean"
-    && typeof candidate.muted === "boolean";
+    && typeof candidate.muted === "boolean"
+    && (candidate.autoConfirm === undefined || typeof candidate.autoConfirm === "boolean");
 }
 
 /** 校验并恢复备份；任何字段无效时拒绝整份文件，避免覆盖当前有效进度。 */
@@ -77,7 +79,10 @@ export function restoreLearningBackup(storage: BackupStorage, chapters: Chapter[
     if (!readLearningLocation(reader, chapters)) throw new Error("备份中的课程位置已经失效");
   }
 
-  const backup = parsed as LearningBackup;
+  const backup = {
+    ...parsed,
+    preferences: { ...parsed.preferences, autoConfirm: parsed.preferences.autoConfirm ?? true },
+  } as LearningBackup;
   storage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(backup.progress));
   storage.setItem(LEARNING_PREFERENCES_STORAGE_KEY, JSON.stringify(backup.preferences));
   if (backup.location) storage.setItem(LEARNING_LOCATION_STORAGE_KEY, JSON.stringify(backup.location));
@@ -95,7 +100,7 @@ function isValidExportDate(value: unknown): value is string {
 
 /** 清除当前设备上的进度、偏好、位置和未完成会话。 */
 export function clearAllLearningData(storage: BackupStorage): void {
-  for (const key of [PROGRESS_STORAGE_KEY, LEARNING_PREFERENCES_STORAGE_KEY, LEARNING_LOCATION_STORAGE_KEY, LEARNING_CHECKPOINT_STORAGE_KEY, LEARNING_ACTIVITY_STORAGE_KEY, DAILY_GOAL_STORAGE_KEY]) {
+  for (const key of [PROGRESS_STORAGE_KEY, LEARNING_PREFERENCES_STORAGE_KEY, LEARNING_LOCATION_STORAGE_KEY, LEARNING_CHECKPOINT_STORAGE_KEY, LEARNING_ACTIVITY_STORAGE_KEY, DAILY_GOAL_STORAGE_KEY, COFFEE_TIP_STORAGE_KEY]) {
     storage.removeItem(key);
   }
 }

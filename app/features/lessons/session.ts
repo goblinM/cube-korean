@@ -5,6 +5,8 @@ export const SPELLING_REVEAL_ERROR_LIMIT = 2;
 
 export type LessonSession = {
   phase: LessonPhase;
+  startPhase?: "copy" | "listen";
+  groupOnly?: boolean;
   queue: string[];
   position: number;
   originalWordIds: string[];
@@ -19,11 +21,20 @@ export type LessonSession = {
   completedMistakeIds: string[];
 };
 
-/** 创建从看词阶段开始的学习会话，并保留原始词序供听写阶段重新使用。 */
-export function createLessonSession(wordIds: string[]): LessonSession {
-  const groupWordIds = wordIds.slice(0, LESSON_GROUP_SIZE);
+/** 创建整关或指定五词组会话；直接听写只跳过看词阶段。 */
+export function createLessonSession(
+  wordIds: string[],
+  options: { startPhase?: "copy" | "listen"; replayGroupIndex?: number } = {},
+): LessonSession {
+  const groupIndex = options.replayGroupIndex ?? 0;
+  if (!Number.isInteger(groupIndex) || groupIndex < 0 || groupIndex * LESSON_GROUP_SIZE >= wordIds.length) {
+    throw new RangeError("无效的词汇分组");
+  }
+  const groupWordIds = wordIds.slice(groupIndex * LESSON_GROUP_SIZE, (groupIndex + 1) * LESSON_GROUP_SIZE);
   return {
-    phase: "copy",
+    phase: options.startPhase ?? "copy",
+    startPhase: options.startPhase ?? "copy",
+    groupOnly: options.replayGroupIndex !== undefined,
     queue: groupWordIds,
     position: 0,
     originalWordIds: groupWordIds,
@@ -32,7 +43,7 @@ export function createLessonSession(wordIds: string[]): LessonSession {
     currentHadError: false,
     currentErrorCount: 0,
     allWordIds: [...wordIds],
-    groupIndex: 0,
+    groupIndex,
     groupSize: LESSON_GROUP_SIZE,
     completedFirstListenCorrect: 0,
     completedMistakeIds: [],
@@ -61,6 +72,7 @@ export function createReviewSession(wordIds: string[]): LessonSession {
 /** 判断当前小组完成后是否还有下一组词，专项错词复习不启用分组。 */
 export function hasNextLessonGroup(session: LessonSession): boolean {
   return session.phase === "results"
+    && !session.groupOnly
     && session.groupSize !== null
     && (session.groupIndex + 1) * session.groupSize < session.allWordIds.length;
 }
@@ -75,7 +87,7 @@ export function canResumeLessonSession(session: LessonSession, wordIds: string[]
 /** 汇总已完成小组和当前小组的整关正确数、错词及总词数。 */
 export function summarizeLessonSession(session: LessonSession) {
   return {
-    wordCount: session.allWordIds.length,
+    wordCount: session.groupOnly ? session.originalWordIds.length : session.allWordIds.length,
     firstListenCorrect: session.completedFirstListenCorrect + session.firstListenCorrect,
     mistakeIds: [...new Set([...session.completedMistakeIds, ...session.mistakeIds])],
   };
@@ -88,7 +100,7 @@ export function advanceLessonGroup(session: LessonSession): LessonSession {
   const groupWordIds = session.allWordIds.slice(groupIndex * session.groupSize, (groupIndex + 1) * session.groupSize);
   return {
     ...session,
-    phase: "copy",
+    phase: session.startPhase ?? "copy",
     queue: groupWordIds,
     position: 0,
     originalWordIds: groupWordIds,
@@ -99,6 +111,22 @@ export function advanceLessonGroup(session: LessonSession): LessonSession {
     groupIndex,
     completedFirstListenCorrect: session.completedFirstListenCorrect + session.firstListenCorrect,
     completedMistakeIds: [...new Set([...session.completedMistakeIds, ...session.mistakeIds])],
+  };
+}
+
+/** 仅重开当前五词组并切换起始阶段，保留此前各组的成绩与错词。 */
+export function restartCurrentLessonGroup(session: LessonSession, startPhase: "copy" | "listen"): LessonSession {
+  if (session.groupSize === null || session.phase === "results") return session;
+  return {
+    ...session,
+    phase: startPhase,
+    startPhase,
+    queue: [...session.originalWordIds],
+    position: 0,
+    mistakeIds: [],
+    firstListenCorrect: 0,
+    currentHadError: false,
+    currentErrorCount: 0,
   };
 }
 

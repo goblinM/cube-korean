@@ -6,6 +6,7 @@ import {
   createLessonSession,
   createReviewSession,
   hasNextLessonGroup,
+  restartCurrentLessonGroup,
   SPELLING_REVEAL_ERROR_LIMIT,
   shouldRevealSpelling,
   submitLessonAnswer,
@@ -116,4 +117,61 @@ test("splits a lesson into five-word groups and preserves whole-lesson results",
     firstListenCorrect: 11,
     mistakeIds: ["word-2"],
   });
+});
+
+test("direct dictation skips copy for every group but still retries mistakes", () => {
+  const wordIds = Array.from({ length: 6 }, (_, index) => `word-${index + 1}`);
+  let session = createLessonSession(wordIds, { startPhase: "listen" });
+  assert.equal(session.phase, "listen");
+  session = submitLessonAnswer(session, wordIds[0], false);
+  for (const wordId of session.originalWordIds) session = submitLessonAnswer(session, wordId, true);
+  assert.equal(session.phase, "retry");
+  session = submitLessonAnswer(session, wordIds[0], true);
+  assert.equal(hasNextLessonGroup(session), true);
+  session = advanceLessonGroup(session);
+  assert.equal(session.phase, "listen");
+  assert.deepEqual(session.queue, [wordIds[5]]);
+  assert.equal(session.completedFirstListenCorrect, 4);
+});
+
+test("completed lesson can replay only a selected group without advancing the full lesson", () => {
+  const wordIds = Array.from({ length: 20 }, (_, index) => `word-${index + 1}`);
+  let session = createLessonSession(wordIds, { startPhase: "listen", replayGroupIndex: 2 });
+  assert.deepEqual(session.queue, wordIds.slice(10, 15));
+  assert.equal(session.groupIndex, 2);
+  assert.equal(session.groupOnly, true);
+  assert.equal(canResumeLessonSession(session, wordIds), true);
+  for (const wordId of session.originalWordIds) session = submitLessonAnswer(session, wordId, true);
+  assert.equal(session.phase, "results");
+  assert.equal(hasNextLessonGroup(session), false);
+  assert.deepEqual(summarizeLessonSession(session), { wordCount: 5, firstListenCorrect: 5, mistakeIds: [] });
+  assert.equal(advanceLessonGroup(session), session);
+  assert.throws(() => createLessonSession(wordIds, { replayGroupIndex: 4 }), RangeError);
+});
+
+test("switching modes in group two restarts only that group and preserves group one", () => {
+  const wordIds = Array.from({ length: 11 }, (_, index) => `word-${index + 1}`);
+  let session = createLessonSession(wordIds, { startPhase: "listen" });
+  for (const wordId of session.originalWordIds) session = submitLessonAnswer(session, wordId, true);
+  session = advanceLessonGroup(session);
+  assert.equal(session.groupIndex, 1);
+  assert.equal(session.completedFirstListenCorrect, 5);
+  session = submitLessonAnswer(session, wordIds[5], false);
+  session = submitLessonAnswer(session, wordIds[5], true);
+
+  session = restartCurrentLessonGroup(session, "copy");
+  assert.equal(session.groupIndex, 1);
+  assert.equal(session.phase, "copy");
+  assert.equal(session.startPhase, "copy");
+  assert.deepEqual(session.queue, wordIds.slice(5, 10));
+  assert.equal(session.position, 0);
+  assert.equal(session.completedFirstListenCorrect, 5);
+  assert.deepEqual(session.mistakeIds, []);
+
+  for (const wordId of session.originalWordIds) session = submitLessonAnswer(session, wordId, true);
+  for (const wordId of session.originalWordIds) session = submitLessonAnswer(session, wordId, true);
+  session = advanceLessonGroup(session);
+  assert.equal(session.phase, "copy");
+  assert.equal(session.groupIndex, 2);
+  assert.equal(session.completedFirstListenCorrect, 10);
 });

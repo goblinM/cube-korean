@@ -32,7 +32,9 @@ export function decomposeHangul(value: string): string {
 export function decomposeHangulToKeystrokes(value: string): string[] {
   return Array.from(value).flatMap((character) => {
     const code = character.charCodeAt(0);
-    if (code < 0xac00 || code > 0xd7a3) return [character];
+    if (code < 0xac00 || code > 0xd7a3) {
+      return INITIAL_KEYSTROKES[character] ?? VOWEL_KEYSTROKES[character] ?? FINAL_KEYSTROKES[character] ?? [character];
+    }
 
     const offset = code - 0xac00;
     const initial = INITIALS[Math.floor(offset / 588)];
@@ -48,16 +50,10 @@ export function decomposeHangulToKeystrokes(value: string): string[] {
 
 /** 判断当前韩语输入是否仍是目标词的有效组合前缀，避免IME尚未完成音节时提前标红。 */
 export function followsTargetPrefix(value: string, target: string): boolean {
-  const typedCharacters = Array.from(value);
-  const targetCharacters = Array.from(target);
-  const isCompletedHangulWord = typedCharacters.length > 0 && typedCharacters.every((character) => {
-    const code = character.charCodeAt(0);
-    return code >= 0xac00 && code <= 0xd7a3;
-  });
-  if (isCompletedHangulWord && typedCharacters.length >= targetCharacters.length) return value === target;
-
   const typedKeys = decomposeHangulToKeystrokes(value).join("");
   const targetKeys = decomposeHangulToKeystrokes(target).join("");
+  // 字母已全部输入时，音节边界也必须完全一致；例如 랃데 不能当作 라떼。
+  if (typedKeys === targetKeys) return value === target;
   return targetKeys.startsWith(typedKeys);
 }
 

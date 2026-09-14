@@ -26,9 +26,16 @@ function memoryStorage(initial = {}) {
 
 test("round-trips learning preferences and falls back from corrupt data", () => {
   const storage = memoryStorage();
-  writeLearningPreferences(storage, { showEnglish: false, nativeKeyboard: false, muted: true });
-  assert.deepEqual(readLearningPreferences(storage), { version: 1, showEnglish: false, nativeKeyboard: false, muted: true });
+  writeLearningPreferences(storage, { showEnglish: false, nativeKeyboard: false, muted: true, autoConfirm: false });
+  assert.deepEqual(readLearningPreferences(storage), { version: 1, showEnglish: false, nativeKeyboard: false, muted: true, autoConfirm: false });
   assert.deepEqual(readLearningPreferences(memoryStorage({ [LEARNING_PREFERENCES_STORAGE_KEY]: "{" })), DEFAULT_LEARNING_PREFERENCES);
+});
+
+test("enables page-keyboard auto confirmation when migrating old preferences", () => {
+  const legacy = memoryStorage({
+    [LEARNING_PREFERENCES_STORAGE_KEY]: JSON.stringify({ version: 1, showEnglish: false, nativeKeyboard: false, muted: true }),
+  });
+  assert.deepEqual(readLearningPreferences(legacy), { version: 1, showEnglish: false, nativeKeyboard: false, muted: true, autoConfirm: true });
 });
 
 test("restores an unfinished lesson at its current phase and position", () => {
@@ -46,6 +53,21 @@ test("restores an unfinished lesson at its current phase and position", () => {
   assert.equal(readLearningCheckpoint(storage, [dailyFoodChapter])?.session.position, 1);
   clearLearningCheckpoint(storage);
   assert.equal(storage.getItem(LEARNING_CHECKPOINT_STORAGE_KEY), null);
+});
+
+test("restores direct-dictation group replay without expanding it to the full level", () => {
+  const lesson = dailyFoodChapter.lessons[0];
+  const wordIds = lesson.words.map((word) => word.id);
+  const session = createLessonSession(wordIds, { startPhase: "listen", replayGroupIndex: 1 });
+  const storage = memoryStorage();
+  writeLearningCheckpoint(storage, {
+    practiceMode: "lesson", selectedChapterId: dailyFoodChapter.id, selectedLessonId: lesson.id, reviewWordIds: [], session,
+  });
+  const restored = readLearningCheckpoint(storage, [dailyFoodChapter])?.session;
+  assert.equal(restored?.phase, "listen");
+  assert.equal(restored?.groupOnly, true);
+  assert.equal(restored?.groupIndex, 1);
+  assert.deepEqual(restored?.queue, wordIds.slice(5, 10));
 });
 
 test("rejects a checkpoint whose queue no longer belongs to the selected lesson", () => {

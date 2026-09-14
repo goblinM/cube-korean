@@ -5,6 +5,7 @@ export type LearningPreferences = {
   showEnglish: boolean;
   nativeKeyboard: boolean;
   muted: boolean;
+  autoConfirm: boolean;
 };
 
 export const DEFAULT_LEARNING_PREFERENCES: LearningPreferences = {
@@ -12,6 +13,7 @@ export const DEFAULT_LEARNING_PREFERENCES: LearningPreferences = {
   showEnglish: true,
   nativeKeyboard: true,
   muted: false,
+  autoConfirm: true,
 };
 
 type StorageReader = Pick<Storage, "getItem">;
@@ -28,14 +30,15 @@ export function readLearningPreferences(storage: StorageReader): LearningPrefere
       || typeof parsed.showEnglish !== "boolean"
       || typeof parsed.nativeKeyboard !== "boolean"
       || typeof parsed.muted !== "boolean"
+      || (parsed.autoConfirm !== undefined && typeof parsed.autoConfirm !== "boolean")
     ) return DEFAULT_LEARNING_PREFERENCES;
-    return parsed as LearningPreferences;
+    return { ...parsed, autoConfirm: parsed.autoConfirm ?? true } as LearningPreferences;
   } catch {
     return DEFAULT_LEARNING_PREFERENCES;
   }
 }
 
-/** 保存英文释义、输入键盘和自动发音偏好。 */
+/** 保存英文释义、输入键盘、自动发音和页面键盘自动确认偏好。 */
 export function writeLearningPreferences(storage: StorageWriter, preferences: Omit<LearningPreferences, "version">): void {
   storage.setItem(LEARNING_PREFERENCES_STORAGE_KEY, JSON.stringify({ version: 1, ...preferences } satisfies LearningPreferences));
 }

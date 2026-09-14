@@ -4,7 +4,8 @@
 
 | 项目 | 值 |
 |---|---|
-| 生产域名 | `https://korean.amolabs.top` |
+| 现有生产域名 | `https://korean.amolabs.top` |
+| 新独立域名 | `https://cubekorean.top`（DNS 已 Active，Worker 绑定后才可访问） |
 | GitHub 仓库 | `https://github.com/goblinM/cube-korean` |
 | 生产分支 | `main` |
 | Cloudflare 项目 | `cube-korean` |
@@ -21,7 +22,7 @@
   → npm run build
   → npx wrangler deploy --config dist/server/wrangler.json
   → 发布 cube-korean Worker
-  → korean.amolabs.top
+  → cube-korean Worker 已绑定的域名
 ```
 
 Cloudflare 构建配置：
@@ -42,8 +43,10 @@ Cloudflare 构建配置：
 发布前在本机执行：
 
 ```bash
-npm test
+npm run test:all
 ```
+
+浏览器端测试需要本机安装Chrome。真实发音还需分别在Mac Chrome与Safari试听，自动化只能确认静态MP3、连续切换与备用语音调用链正常。
 
 测试通过后提交并推送：
 
@@ -68,7 +71,18 @@ git push origin main
 9. 域名与 Worker 同属当前 Cloudflare 账户时，由 Cloudflare 自动创建 DNS 路由并签发 HTTPS 证书；等待状态变为 Active。
 10. 访问 `https://korean.amolabs.top` 验证服务。
 
-## 5. 手动发布与预览
+## 5. 接入独立域名 `cubekorean.top`
+
+`cubekorean.top` 在阿里云注册，已添加到当前 Cloudflare 账户且域名状态为 Active。它复用现有 `cube-korean` Worker 和 GitHub `main` 自动部署链路，无需新建 Pages 项目、Worker 或构建任务。域名 DNS Active 只代表 Cloudflare 已接管解析，不代表网站已绑定成功。
+
+1. 若需复现域名接入：在 Cloudflare `Domains → Onboard a domain` 添加 `cubekorean.top`；到阿里云**域名控制台**的 `域名列表 → cubekorean.top → 管理 → DNS 管理 → DNS 修改`，将 DNS 服务器设置为 Cloudflare 为**该域名**分配的两条 Nameserver，并删除其他 Nameserver。此操作不是在阿里云“云解析 DNS”中添加 NS 解析记录。如原域名启用了 DNSSEC，先在阿里云移除旧 DS 记录。等待 Cloudflare 域名状态变为 Active。
+2. 在 Cloudflare 打开 `Workers & Pages → cube-korean → Domains`，选择 `Add → Custom Domain`，填写 `cubekorean.top` 并确认。若界面没有独立的 `Domains` 页，使用 `Settings → Domains & Routes → Add → Custom Domain`。Cloudflare 会自动创建该 Worker 的 DNS 记录并签发 HTTPS 证书，不要手工创建指向 Worker 的 CNAME。
+3. 等 Worker 的自定义域名状态变为 Active，访问 `https://cubekorean.top`，验证首页、开始关卡、韩语输入和音频播放。再检查 `cube-korean → Deployments` 中生产版本正常；后续推送 `main` 会更新同一个 Worker 的所有已绑定域名。
+4. 暂时保留 `korean.amolabs.top`。学习记录保存在浏览器当前域名的 `localStorage`，不会随域名切换自动迁移。已有用户先在旧站“备份与恢复”下载 JSON，再在新站恢复；待迁移完成后，再决定是否给旧域名配置 301 跳转。
+
+`www.cubekorean.top` 是不同主机名。如需支持 `www`，另行绑定为自定义域名，或配置指向 `https://cubekorean.top` 的重定向。
+
+## 6. 手动发布与预览
 
 仅在自动构建不可用时使用本机 Wrangler 登录态：
 
@@ -84,17 +98,18 @@ npm run deploy:preview
 
 这两个命令都会先重新构建，避免上传过期的 `dist` 内容。
 
-## 6. 回滚
+## 7. 回滚
 
 优先在 Cloudflare Dashboard 的 `cube-korean → Deployments` 中选择上一个正常版本并执行回滚。随后在 GitHub 中修复或撤销有问题的提交，再推送 `main`，让自动部署回到可追踪状态。
 
 不要通过修改 `amo-tech-lab` 的部署或域名来处理 CubeKorean 故障；两个项目的配置和回滚记录彼此独立。
 
-## 7. 故障排查
+## 8. 故障排查
 
 - 构建失败：查看 Cloudflare 对应部署的 Build log，并在本机运行 `npm test` 复现。
 - 提示缺少入口：确认 Deploy command 包含 `--config dist/server/wrangler.json`。
 - 页面可打开但静态资源失败：确认构建产物同时包含 `dist/server` 与 `dist/client`。
 - 自定义域名 Pending：检查 `Domains` 中的域名状态和 DNS 冲突记录，等待证书签发后再重试。
+- 新域名显示 Invalid nameservers：对照阿里云域名控制台与 Cloudflare 分配的两条 Nameserver，确认没有多余地址；检查阿里云旧 DS 记录，并等待 DNS 服务器修改传播。
 - 推送后没有构建：确认提交已进入 `main`，并检查项目的 Git repository 与 Build watch paths。
 - Cloudflare 显示 Git 账户已断开：在项目 `Settings → Builds` 点击 `Manage`，前往 GitHub 重新确认 Cloudflare Workers and Pages App 的访问权限；确认 `cube-korean` 仍在授权仓库列表后返回并刷新。

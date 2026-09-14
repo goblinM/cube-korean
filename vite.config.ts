@@ -3,6 +3,7 @@ import { defineConfig } from "vite";
 
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
+const isBrowserTest = process.env.CUBE_E2E === "true";
 
 const localBindingConfig = {
   main: "./worker/index.ts",
@@ -26,6 +27,7 @@ export default defineConfig(async () => {
     plugins: [
       vinext(),
       cloudflare({
+        inspectorPort: isBrowserTest ? false : undefined,
         viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
         config: localBindingConfig,
       }),

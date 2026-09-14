@@ -21,6 +21,8 @@ test("returns the actual page-keyboard sequence for Korean spelling hints", () =
   assert.deepEqual(decomposeHangulToKeystrokes("값"), ["ㄱ", "ㅏ", "ㅂ", "ㅅ"]);
   assert.deepEqual(decomposeHangulToKeystrokes("딸기"), ["ㄷ", "ㄷ", "ㅏ", "ㄹ", "ㄱ", "ㅣ"]);
   assert.deepEqual(decomposeHangulToKeystrokes("라떼"), ["ㄹ", "ㅏ", "ㄷ", "ㄷ", "ㅔ"]);
+  assert.deepEqual(decomposeHangulToKeystrokes("ㄸ"), ["ㄷ", "ㄷ"]);
+  assert.deepEqual(decomposeHangulToKeystrokes("ㅘ"), ["ㅗ", "ㅏ"]);
 });
 
 test("accepts every valid IME prefix for 커피", () => {
@@ -29,7 +31,17 @@ test("accepts every valid IME prefix for 커피", () => {
   }
 });
 
+test("accepts a missing final consonant even when the syllable count already matches", () => {
+  for (const value of ["ㄷ", "다", "달", "닭", "달ㄱ", "달갸", "달걀"]) {
+    assert.equal(followsTargetPrefix(value, "달걀"), true, value);
+  }
+  assert.equal(followsTargetPrefix("달가", "달걀"), false);
+  assert.equal(followsTargetPrefix("달갸가", "달걀"), false);
+  assert.equal(isExactSpelling("달갸", "달걀"), false);
+});
+
 test("accepts a basic consonant while a double initial is being entered", () => {
+  assert.equal(followsTargetPrefix("ㄸ", "딸기"), true);
   assert.equal(followsTargetPrefix("라", "라떼"), true);
   assert.equal(followsTargetPrefix("랃", "라떼"), true);
   assert.equal(followsTargetPrefix("랃ㄷ", "라떼"), true);

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
+import { CoffeeSupportDialog } from "./components/coffee-support-dialog";
 import { CHAPTERS, COURSE_WORDS } from "./data/lessons/course";
 import {
   advanceLessonGroup,
@@ -8,6 +9,7 @@ import {
   createLessonSession,
   createReviewSession,
   hasNextLessonGroup,
+  restartCurrentLessonGroup,
   SPELLING_REVEAL_ERROR_LIMIT,
   shouldRevealSpelling,
   submitLessonAnswer,
@@ -31,11 +33,13 @@ import { clearLearningCheckpoint, readLearningCheckpoint, writeLearningCheckpoin
 import { readLearningPreferences, writeLearningPreferences } from "./features/progress/learning-preferences";
 import { clearAllLearningData, createLearningBackup, restoreLearningBackup } from "./features/progress/learning-backup";
 import { calculateLearningStats } from "./features/progress/learning-stats";
+import { dismissFutureCoffeeTips, getCoffeeTipMilestone, markCoffeeTipShown, readCoffeeTipState } from "./features/progress/coffee-tip";
 import {
   createEmptyLearningActivity,
   readDailyGoal,
   readLearningActivity,
   recordLearningActivity,
+  recordStudiedWord,
   summarizeLearningActivity,
   writeDailyGoal,
 } from "./features/progress/learning-activity";
@@ -56,12 +60,17 @@ const LESSON_ICONS: Record<string, string[]> = {
   social: ["👫", "🎈", "🏠", "🎨", "😊", "🙏", "🎊", "💬", "☕", "🎉"],
 };
 const TOTAL_LESSON_COUNT = CHAPTERS.reduce((total, item) => total + item.lessons.length, 0);
+const CORRECT_ADVANCE_DELAY_MS = 350;
 
 const KEYS = [
   ["ㅂ", "ㅈ", "ㄷ", "ㄱ", "ㅅ", "ㅛ", "ㅕ", "ㅑ", "ㅐ", "ㅔ"],
   ["ㅁ", "ㄴ", "ㅇ", "ㄹ", "ㅎ", "ㅗ", "ㅓ", "ㅏ", "ㅣ"],
   ["ㅋ", "ㅌ", "ㅊ", "ㅍ", "ㅠ", "ㅜ", "ㅡ"],
 ];
+const PHYSICAL_KEY_ROWS = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
+const SHIFTED_PHYSICAL_KEYS: Record<string, string> = {
+  Q: "ㅃ", W: "ㅉ", E: "ㄸ", R: "ㄲ", T: "ㅆ", O: "ㅒ", P: "ㅖ",
+};
 
 export default function Home() {
   const [started, setStarted] = useState(false);
@@ -70,6 +79,8 @@ export default function Home() {
   const [practiceMode, setPracticeMode] = useState<"lesson" | "mistakes">("lesson");
   const [selectedChapterId, setSelectedChapterId] = useState(CHAPTERS[0].id);
   const [selectedLessonId, setSelectedLessonId] = useState(CHAPTERS[0].lessons[0].id);
+  const [selectedStartPhase, setSelectedStartPhase] = useState<"copy" | "listen">("copy");
+  const [selectedReplayGroupIndex, setSelectedReplayGroupIndex] = useState<number | null>(null);
   const [locationReady, setLocationReady] = useState(false);
   const [preferencesReady, setPreferencesReady] = useState(false);
   const [checkpointReady, setCheckpointReady] = useState(false);
@@ -81,20 +92,28 @@ export default function Home() {
   const [dailyGoal, setDailyGoal] = useState(1);
   const [session, setSession] = useState(() => createLessonSession(CHAPTERS[0].lessons[0].words.map((word) => word.id)));
   const [resultSaved, setResultSaved] = useState(false);
+  const [coffeeTipMilestone, setCoffeeTipMilestone] = useState<number | null>(null);
+  const [showCoffeeSupport, setShowCoffeeSupport] = useState(false);
   const [answer, setAnswer] = useState("");
   const [keyboardJamo, setKeyboardJamo] = useState("");
   const [message, setMessage] = useState("");
   const [showPracticeHelp, setShowPracticeHelp] = useState(false);
   const [showGroupWords, setShowGroupWords] = useState(false);
+  const [showPracticeOptions, setShowPracticeOptions] = useState(false);
   const [manualReveal, setManualReveal] = useState(false);
   const [showEnglish, setShowEnglish] = useState(true);
   const [nativeKeyboard, setNativeKeyboard] = useState(true);
   const [muted, setMuted] = useState(false);
+  const [autoConfirm, setAutoConfirm] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [speechUnavailable, setSpeechUnavailable] = useState(false);
   const [backupMessage, setBackupMessage] = useState("");
   const [resetArmed, setResetArmed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const practiceOptionsTriggerRef = useRef<HTMLButtonElement>(null);
+  const practiceOptionsCloseRef = useRef<HTMLButtonElement>(null);
   const backupInputRef = useRef<HTMLInputElement>(null);
+  const submittingRef = useRef(false);
   const chapter = CHAPTERS.find((candidate) => candidate.id === selectedChapterId) ?? CHAPTERS[0];
   const chapterIndex = CHAPTERS.findIndex((candidate) => candidate.id === chapter.id);
   const lessons = chapter.lessons;
@@ -117,6 +136,9 @@ export default function Home() {
   });
   const weakWordIds = selectWeakWordIds(COURSE_WORDS, progress);
   const hasNextGroup = hasNextLessonGroup(session);
+  const requestedReplayGroupIndex = progress.lessons[lesson.id] ? selectedReplayGroupIndex : null;
+  const practiceRangeChanged = requestedReplayGroupIndex !== (session.groupOnly ? session.groupIndex : null);
+  const practiceStartPhaseChanged = selectedStartPhase !== (session.startPhase ?? "copy");
   const groupWords = session.originalWordIds.flatMap((id) => {
     const entry = words.find((candidate) => candidate.id === id);
     return entry ? [entry] : [];
@@ -144,6 +166,7 @@ export default function Home() {
       setShowEnglish(preferences.showEnglish);
       setNativeKeyboard(preferences.nativeKeyboard);
       setMuted(preferences.muted);
+      setAutoConfirm(preferences.autoConfirm);
       setPreferencesReady(true);
     }, 0);
     return () => window.clearTimeout(timer);
@@ -151,8 +174,8 @@ export default function Home() {
 
   useEffect(() => {
     if (!preferencesReady) return;
-    writeLearningPreferences(window.localStorage, { showEnglish, nativeKeyboard, muted });
-  }, [muted, nativeKeyboard, preferencesReady, showEnglish]);
+    writeLearningPreferences(window.localStorage, { showEnglish, nativeKeyboard, muted, autoConfirm });
+  }, [autoConfirm, muted, nativeKeyboard, preferencesReady, showEnglish]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -237,6 +260,19 @@ export default function Home() {
   }, [showGroupWords]);
 
   useEffect(() => {
+    if (!showPracticeOptions) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowPracticeOptions(false);
+        practiceOptionsTriggerRef.current?.focus();
+      }
+    };
+    practiceOptionsCloseRef.current?.focus();
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [showPracticeOptions]);
+
+  useEffect(() => {
     if (!preferencesReady || !started || session.phase === "results") return;
     if (!nativeKeyboard) {
       inputRef.current?.blur();
@@ -254,35 +290,49 @@ export default function Home() {
         ? Math.round(((words.length - session.mistakeIds.length) / words.length) * 100)
         : Math.round((summary.firstListenCorrect / summary.wordCount) * 100);
       const completedAt = new Date();
-      setActivity(recordLearningActivity(window.localStorage, words.length, accuracy, completedAt));
-      setProgress((current) => {
-        const updated = practiceMode === "mistakes"
-          ? recordMistakeReview(current, session.originalWordIds, session.mistakeIds, completedAt.toISOString())
-          : recordLessonResult(current, lesson.id, accuracy, summary.mistakeIds, completedAt.toISOString(), true);
-        writeProgress(window.localStorage, updated);
-        return updated;
-      });
+      setActivity(recordLearningActivity(window.localStorage, accuracy, completedAt));
+      const previous = readProgress(window.localStorage);
+      const updated = practiceMode === "mistakes"
+        ? recordMistakeReview(previous, session.originalWordIds, session.mistakeIds, completedAt.toISOString())
+        : session.groupOnly ? previous : recordLessonResult(previous, lesson.id, accuracy, summary.mistakeIds, completedAt.toISOString(), true);
+      writeProgress(window.localStorage, updated);
+      setProgress(updated);
+      if (practiceMode === "lesson" && !session.groupOnly) {
+        const milestone = getCoffeeTipMilestone(previous, updated, readCoffeeTipState(window.localStorage));
+        if (milestone !== null) {
+          markCoffeeTipShown(window.localStorage, milestone);
+          setCoffeeTipMilestone(milestone);
+        }
+      }
       setResultSaved(true);
     }, 0);
     return () => window.clearTimeout(timer);
   }, [hasNextGroup, lesson.id, practiceMode, resultSaved, session, words.length]);
 
-  function startLesson(lessonId = selectedLessonId, chapterId = selectedChapterId) {
+  function startLesson(lessonId = selectedLessonId, chapterId = selectedChapterId, options: { startPhase?: "copy" | "listen"; replayGroupIndex?: number } = {}) {
     const targetChapter = CHAPTERS.find((candidate) => candidate.id === chapterId) ?? CHAPTERS[0];
     const targetLesson = targetChapter.lessons.find((candidate) => candidate.id === lessonId) ?? targetChapter.lessons[0];
+    const hasExplicitOptions = options.startPhase !== undefined || options.replayGroupIndex !== undefined;
     const canResume = practiceMode === "lesson"
       && selectedChapterId === targetChapter.id
       && selectedLessonId === targetLesson.id
+      && (!hasExplicitOptions || ((session.startPhase ?? "copy") === (options.startPhase ?? "copy")
+        && (session.groupOnly ? session.groupIndex : null) === (options.replayGroupIndex ?? null)))
       && canResumeLessonSession(session, targetLesson.words.map((item) => item.id));
     setPracticeMode("lesson");
     setSelectedChapterId(targetChapter.id);
     setSelectedLessonId(targetLesson.id);
-    if (!canResume) setSession(createLessonSession(targetLesson.words.map((item) => item.id)));
+    if (!canResume) setSession(createLessonSession(targetLesson.words.map((item) => item.id), options));
     setAnswer("");
     setKeyboardJamo("");
     setMessage("");
+    submittingRef.current = false;
+    setSubmitting(false);
     setShowGroupWords(false);
+    setShowPracticeOptions(false);
     setResultSaved(false);
+    setCoffeeTipMilestone(null);
+    setShowCoffeeSupport(false);
     setStarted(true);
     if (nativeKeyboard) window.setTimeout(() => inputRef.current?.focus(), 100);
   }
@@ -293,6 +343,37 @@ export default function Home() {
     setSelectedLessonId(findChapterContinueLessonId(targetChapter, progress));
   }
 
+  function openPracticeOptions() {
+    setSelectedStartPhase(session.startPhase ?? "copy");
+    setSelectedReplayGroupIndex(session.groupOnly ? session.groupIndex : null);
+    setShowPracticeHelp(false);
+    setShowGroupWords(false);
+    setShowPracticeOptions(true);
+    inputRef.current?.blur();
+  }
+
+  function applyPracticeOptions() {
+    setShowPracticeOptions(false);
+    if (practiceRangeChanged) startLesson(lesson.id, chapter.id, {
+      startPhase: selectedStartPhase,
+      ...(requestedReplayGroupIndex !== null ? { replayGroupIndex: requestedReplayGroupIndex } : {}),
+    });
+    else if (practiceStartPhaseChanged) {
+      setSession((current) => restartCurrentLessonGroup(current, selectedStartPhase));
+      setAnswer("");
+      setKeyboardJamo("");
+      setMessage("");
+      setManualReveal(false);
+      setShowGroupWords(false);
+      submittingRef.current = false;
+      setSubmitting(false);
+      if (nativeKeyboard) window.setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 0);
+      else practiceOptionsTriggerRef.current?.focus();
+    }
+    else if (nativeKeyboard) window.setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 0);
+    else practiceOptionsTriggerRef.current?.focus();
+  }
+
   function startMistakeReview(wordIds: string[]) {
     if (!wordIds.length) return;
     setPracticeMode("mistakes");
@@ -301,6 +382,8 @@ export default function Home() {
     setAnswer("");
     setKeyboardJamo("");
     setMessage("");
+    submittingRef.current = false;
+    setSubmitting(false);
     setShowGroupWords(false);
     setResultSaved(false);
     setStarted(true);
@@ -312,12 +395,18 @@ export default function Home() {
     setAnswer("");
     setKeyboardJamo("");
     setMessage("");
+    submittingRef.current = false;
+    setSubmitting(false);
     setShowGroupWords(false);
     if (nativeKeyboard) window.setTimeout(() => inputRef.current?.focus(), 100);
   }
 
-  function submit() {
-    if (isExactSpelling(answer, word.korean)) {
+  function submit(submittedAnswer = answer) {
+    if (submittingRef.current) return;
+    if (submittedAnswer.trim()) markWordStudied();
+    if (isExactSpelling(submittedAnswer, word.korean)) {
+      submittingRef.current = true;
+      setSubmitting(true);
       setShowPracticeHelp(false);
       setMessage("정답이에요! 拼写正确");
       window.setTimeout(() => {
@@ -325,7 +414,9 @@ export default function Home() {
         setAnswer("");
         setKeyboardJamo("");
         setMessage("");
-      }, 650);
+        submittingRef.current = false;
+        setSubmitting(false);
+      }, CORRECT_ADVANCE_DELAY_MS);
     } else {
       const isNewLessonMistake = practiceMode === "lesson"
         && session.phase !== "copy"
@@ -353,11 +444,13 @@ export default function Home() {
   }
 
   function typeKey(key: string) {
-    setKeyboardJamo((current) => {
-      const next = current + key;
-      setAnswer(composeHangul(next, word.korean));
-      return next;
-    });
+    if (submittingRef.current) return;
+    const next = keyboardJamo + key;
+    const nextAnswer = composeHangul(next, word.korean);
+    if (nextAnswer) markWordStudied();
+    setKeyboardJamo(next);
+    setAnswer(nextAnswer);
+    if (autoConfirm && isExactSpelling(nextAnswer, word.korean)) submit(nextAnswer);
   }
 
   function deleteKey() {
@@ -380,6 +473,7 @@ export default function Home() {
       closePracticeHelp();
       return;
     }
+    markWordStudied();
     setManualReveal(true);
     closePracticeHelp();
     setMessage(session.phase === "copy"
@@ -396,6 +490,10 @@ export default function Home() {
       });
     }
     setSession((current) => submitLessonAnswer(current, word.id, false));
+  }
+
+  function markWordStudied() {
+    setActivity(recordStudiedWord(window.localStorage, word.id));
   }
 
   function downloadLearningBackup() {
@@ -432,6 +530,13 @@ export default function Home() {
     clearAllLearningData(window.localStorage);
     window.location.reload();
   }
+
+  function optOutOfCoffeeTips() {
+    dismissFutureCoffeeTips(window.localStorage);
+    setCoffeeTipMilestone(null);
+  }
+
+  const closeCoffeeSupport = useCallback(() => setShowCoffeeSupport(false), []);
 
   if (!started && showDataCenter) {
     const completionPercent = Math.round((completedLessons.length / TOTAL_LESSON_COUNT) * 100);
@@ -472,6 +577,10 @@ export default function Home() {
             <div className="section-heading"><div><small>RECENT</small><h2>最近学习</h2></div></div>
             {learningStats.recent.length ? <div className="recent-list">{learningStats.recent.map((item) => <div key={`${item.completedAt}-${item.lessonTitle}`}><span><b>{item.lessonTitle}</b><small>{item.chapterTitle} · {new Date(item.completedAt).toLocaleDateString("zh-CN")}</small></span><strong>{item.accuracy}%</strong></div>)}</div> : <div className="empty-recent">完成第一关后，这里会显示最近学习记录。</div>}
           </section>
+          <section className="insight-card coffee-entry">
+            <div><small>SUPPORT</small><h2>☕ 支持 CubeKorean</h2><p>喜欢这里的韩语拼写练习？可以自愿请我们喝杯咖啡。所有学习功能都保持免费。</p></div>
+            <button type="button" onClick={() => setShowCoffeeSupport(true)}>查看支持方式 <span aria-hidden="true">↗</span></button>
+          </section>
           <div className="data-section-title"><small>DATA</small><h2>备份与恢复</h2></div>
           <div className="data-actions">
             <article><span className="data-icon">↓</span><div><h2>下载学习备份</h2><p>保存通关记录、正确率、错词、学习位置和练习偏好。</p></div><button onClick={downloadLearningBackup}>下载备份</button></article>
@@ -480,6 +589,7 @@ export default function Home() {
           </div>
           <p className={`backup-message ${resetArmed ? "warning" : ""}`} role="status">{backupMessage}</p>
         </section>
+        {showCoffeeSupport && <CoffeeSupportDialog onClose={closeCoffeeSupport} />}
       </main>
     );
   }
@@ -520,7 +630,7 @@ export default function Home() {
       <main className="map-page">
         <header className="brand-row">
           <div className="brand" aria-label="CubeKorean 首页"><span>ㅋ</span> CubeKorean</div>
-          <div className="header-actions"><button className="mistake-link" onClick={() => setShowMistakeBook(true)}>错词本 <b>{Object.keys(progress.mistakes).length}</b></button><span className="daily-status" aria-label={`今日完成 ${activitySummary.today.sessions} 轮，目标 ${dailyGoal} 轮`}><small>今日</small><strong>{activitySummary.today.sessions}<em>/{dailyGoal}轮</em></strong></span><button className="avatar" onClick={() => setShowDataCenter(true)} aria-label="打开学习数据">안</button></div>
+          <div className="header-actions"><button className="mistake-link" disabled={!checkpointReady} onClick={() => setShowMistakeBook(true)}>错词本 <b>{Object.keys(progress.mistakes).length}</b></button><span className="daily-status" aria-label={`今日学习 ${activitySummary.today.words} 词`}><small>今日学习</small><strong>{activitySummary.today.words}<em>词</em></strong></span><button className="settings-button" disabled={!checkpointReady} onClick={() => setShowDataCenter(true)} aria-label="打开学习数据与设置" title="学习数据与设置"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 2h4l.45 2.2 1.5.65 1.9-1.23 2.83 2.83-1.23 1.9.65 1.5L22 10v4l-2.2.45-.65 1.5 1.23 1.9-2.83 2.83-1.9-1.23-1.5.65L14 22h-4l-.45-2.2-1.5-.65-1.9 1.23-2.83-2.83 1.23-1.9-.65-1.5L2 14v-4l2.2-.45.65-1.5-1.23-1.9 2.83-2.83 1.9 1.23 1.5-.65L10 2Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" /></svg></button></div>
         </header>
 
         <section className="hero">
@@ -532,10 +642,10 @@ export default function Home() {
 
           <div className="lesson-map">
             <div className="chapter-switcher" aria-label="选择大关卡">
-              <button className="chapter-arrow" disabled={chapterIndex <= 0} onClick={() => selectChapter(CHAPTERS[chapterIndex - 1].id)} aria-label="上一个大关卡">←</button>
+              <button className="chapter-arrow" disabled={!checkpointReady || chapterIndex <= 0} onClick={() => selectChapter(CHAPTERS[chapterIndex - 1].id)} aria-label="上一个大关卡">←</button>
               <div className="chapter-current"><span>{LESSON_ICONS[chapter.id]?.[0] ?? "✦"}</span><div><small>主题 {chapterIndex + 1} / {CHAPTERS.length}</small><strong>{chapter.titleChinese}</strong><em>{chapter.titleKorean}</em></div></div>
-              <select value={chapter.id} onChange={(event) => selectChapter(event.target.value)} aria-label="选择生活主题">{CHAPTERS.map((item, index) => <option value={item.id} key={item.id}>主题 {index + 1} · {item.titleChinese}</option>)}</select>
-              <button className="chapter-arrow" disabled={chapterIndex >= CHAPTERS.length - 1} onClick={() => selectChapter(CHAPTERS[chapterIndex + 1].id)} aria-label="下一个大关卡">→</button>
+              <select value={chapter.id} disabled={!checkpointReady} onChange={(event) => selectChapter(event.target.value)} aria-label="选择生活主题">{CHAPTERS.map((item, index) => <option value={item.id} key={item.id}>主题 {index + 1} · {item.titleChinese}</option>)}</select>
+              <button className="chapter-arrow" disabled={!checkpointReady || chapterIndex >= CHAPTERS.length - 1} onClick={() => selectChapter(CHAPTERS[chapterIndex + 1].id)} aria-label="下一个大关卡">→</button>
             </div>
             <div className="cube-wrap" aria-hidden="true">
               <div className="cube">
@@ -554,7 +664,7 @@ export default function Home() {
                 return (
                   <button
                     className={`stage ${selected ? "active" : ""} ${completed ? "completed" : ""}`}
-                    disabled={!unlocked}
+                    disabled={!checkpointReady || !unlocked}
                     key={item.id}
                     onClick={() => setSelectedLessonId(item.id)}
                     aria-label={`${index + 1}. ${item.titleChinese}${unlocked ? "" : "，未解锁"}`}
@@ -565,7 +675,7 @@ export default function Home() {
                 );
               })}
             </div>
-            <button className="primary" onClick={() => startLesson()}>{progress.lessons[lesson.id] ? "再次练习" : "开始本关"} <span>→</span></button>
+            <button className="primary" disabled={!checkpointReady} onClick={() => startLesson()}>{progress.lessons[lesson.id] ? "再次练习" : "开始本关"} <span>→</span></button>
           </div>
         </section>
       </main>
@@ -589,9 +699,9 @@ export default function Home() {
       <main className="results-page">
         <section className="results-card">
           <div className="result-mark">✓</div>
-          <div className="eyebrow">{isMistakeReview ? "REVIEW COMPLETE" : isGroupComplete ? `GROUP ${session.groupIndex + 1} COMPLETE` : "LESSON COMPLETE"}</div>
-          <h1>{isMistakeReview ? "复习完成！" : isGroupComplete ? `第 ${session.groupIndex + 1} 组完成！` : "本关完成！"}</h1>
-          <p>{isMistakeReview ? `本轮复习 ${words.length} 个错词` : isGroupComplete ? `已完成 5 个词，稍作停顿再继续` : `${lesson.titleKorean} · ${lesson.titleChinese}`}</p>
+          <div className="eyebrow">{isMistakeReview ? "REVIEW COMPLETE" : session.groupOnly || isGroupComplete ? `GROUP ${session.groupIndex + 1} COMPLETE` : "LESSON COMPLETE"}</div>
+          <h1>{isMistakeReview ? "复习完成！" : session.groupOnly ? `第 ${session.groupIndex + 1} 组重练完成！` : isGroupComplete ? `第 ${session.groupIndex + 1} 组完成！` : "本关完成！"}</h1>
+          <p>{isMistakeReview ? `本轮复习 ${words.length} 个错词` : session.groupOnly ? `已重练第 ${session.groupIndex + 1} 组的 ${resultWordCount} 个词` : isGroupComplete ? `已完成 5 个词，稍作停顿再继续` : `${lesson.titleKorean} · ${lesson.titleChinese}`}</p>
           <div className="result-stats">
             <div><strong>{resultWordCount}</strong><span>{isGroupComplete ? "本组词汇" : "学习词汇"}</span></div>
             <div><strong>{accuracy}%</strong><span>{isMistakeReview ? "本轮一次答对率" : "首次听写正确率"}</span></div>
@@ -603,9 +713,22 @@ export default function Home() {
               <div>{resultMistakeIds.map((id) => <b key={id}>{words.find((item) => item.id === id)?.korean}</b>)}</div>
             </div>
           )}
-          <button className="primary" onClick={() => isGroupComplete ? startNextGroup() : isMistakeReview ? setStarted(false) : nextLesson ? startLesson(nextLesson.id) : startLesson()}>{isGroupComplete ? `继续第 ${session.groupIndex + 2} 组` : isMistakeReview ? "返回错词本" : nextLesson ? "进入下一关" : "再练一次"} <span>{isMistakeReview || nextLesson || isGroupComplete ? "→" : "↻"}</span></button>
+          {coffeeTipMilestone !== null && !isGroupComplete && !isMistakeReview && (
+            <aside className="coffee-tip" aria-label="学习里程碑与自愿支持">
+              <span className="coffee-tip-icon" aria-hidden="true">☕</span>
+              <div className="coffee-tip-copy">
+                <strong>已经完成 {completedLessons.length} 关，太棒了！</strong>
+                <p>感谢你一直练习！如果 CubeKorean 帮到了你，欢迎自愿请我们喝杯咖啡。</p>
+                <button type="button" className="coffee-tip-open" onClick={() => setShowCoffeeSupport(true)}>查看支持方式 ↗</button>
+              </div>
+              <button type="button" onClick={() => setCoffeeTipMilestone(null)} aria-label="关闭这次提示">×</button>
+              <button type="button" className="coffee-tip-opt-out" onClick={optOutOfCoffeeTips}>不再提示</button>
+            </aside>
+          )}
+          <button className="primary" onClick={() => isGroupComplete ? startNextGroup() : isMistakeReview || session.groupOnly ? setStarted(false) : nextLesson ? startLesson(nextLesson.id) : startLesson()}>{isGroupComplete ? `继续第 ${session.groupIndex + 2} 组` : isMistakeReview ? "返回错词本" : session.groupOnly ? "返回关卡地图" : nextLesson ? "进入下一关" : "再练一次"} <span>{isMistakeReview || session.groupOnly || nextLesson || isGroupComplete ? "→" : "↻"}</span></button>
           <button className="result-link" onClick={() => { setStarted(false); if (isMistakeReview) setShowMistakeBook(false); }}>{isMistakeReview ? "返回课程地图" : "返回关卡地图"}</button>
         </section>
+        {showCoffeeSupport && <CoffeeSupportDialog onClose={closeCoffeeSupport} />}
       </main>
     );
   }
@@ -624,7 +747,7 @@ export default function Home() {
     <main
       className="practice-page"
       onClickCapture={(event) => {
-        if ((event.target as HTMLElement).closest(".group-list-trigger,.group-word-list,.group-list-backdrop")) return;
+        if ((event.target as HTMLElement).closest(".group-list-trigger,.group-word-list,.group-list-backdrop,.practice-options-trigger,.practice-options-dialog,.practice-options-backdrop")) return;
         if (nativeKeyboard) inputRef.current?.focus({ preventScroll: true });
       }}
     >
@@ -676,7 +799,40 @@ export default function Home() {
         <div className="counter">{session.groupSize && <span>第 {session.groupIndex + 1}/{groupTotal} 组 · </span>}<b>{session.position + 1}</b> / {session.queue.length}</div>
       </header>
 
-      <div className="mode-pill"><span>{phaseNumber}</span>{phaseLabel}</div>
+      <div className="practice-mode-row">
+        <div className="mode-pill"><span>{phaseNumber}</span>{phaseLabel}</div>
+        {practiceMode === "lesson" && <button
+          ref={practiceOptionsTriggerRef}
+          type="button"
+          className="practice-options-trigger"
+          disabled={submitting}
+          aria-haspopup="dialog"
+          aria-expanded={showPracticeOptions}
+          aria-controls="practice-options-dialog"
+          onClick={openPracticeOptions}
+        >调整练习 <span aria-hidden="true">⌄</span></button>}
+      </div>
+      {showPracticeOptions && practiceMode === "lesson" && <>
+        <button type="button" className="practice-options-backdrop" aria-label="关闭练习设置" onClick={() => { setShowPracticeOptions(false); practiceOptionsTriggerRef.current?.focus(); }} />
+        <section id="practice-options-dialog" className="practice-options-dialog" role="dialog" aria-modal="true" aria-labelledby="practice-options-title">
+          <header><div><small>LEARNING MODE</small><h2 id="practice-options-title">调整本关练习</h2></div><button ref={practiceOptionsCloseRef} type="button" aria-label="关闭练习设置" onClick={() => { setShowPracticeOptions(false); practiceOptionsTriggerRef.current?.focus(); }}>×</button></header>
+          <div className="practice-options-fields">
+            <div className="practice-options-field"><strong>练习方式</strong><div className="practice-options-choices" role="group" aria-label="选择练习方式">
+              <button type="button" aria-pressed={selectedStartPhase === "copy"} onClick={() => setSelectedStartPhase("copy")}>看词＋听写</button>
+              <button type="button" aria-pressed={selectedStartPhase === "listen"} onClick={() => setSelectedStartPhase("listen")}>直接听写</button>
+            </div></div>
+            {progress.lessons[lesson.id] && <div className="practice-options-field"><strong>重练范围</strong><div className="practice-options-choices" role="group" aria-label="选择重练分组">
+              <button type="button" aria-pressed={selectedReplayGroupIndex === null} onClick={() => setSelectedReplayGroupIndex(null)}>整关 · 20词</button>
+              {Array.from({ length: Math.ceil(lesson.words.length / 5) }, (_, index) => <button type="button" key={index} aria-pressed={selectedReplayGroupIndex === index} onClick={() => setSelectedReplayGroupIndex(index)}>第{index + 1}组 · 5词</button>)}
+            </div></div>}
+          </div>
+          <p>{selectedStartPhase === "listen" ? "直接听写会跳过看词阶段，按发音和释义拼写。" : "默认先看词拼写，再进入听音默写。"}</p>
+          {(practiceStartPhaseChanged || practiceRangeChanged) && <p className="practice-options-warning">{practiceRangeChanged
+            ? "更改重练范围后，会从所选范围的第 1 个词开始；当前未完成的位置会被替换。"
+            : `切换方式后，会从当前第 ${session.groupIndex + 1} 组的第 1 个词重新开始；前面已完成的组和整关进度会保留。`}</p>}
+          <div className="practice-options-actions"><button type="button" onClick={() => { setShowPracticeOptions(false); practiceOptionsTriggerRef.current?.focus(); }}>取消</button><button type="button" onClick={applyPracticeOptions}>应用选择</button></div>
+        </section>
+      </>}
 
       <section className="word-stage">
         <div className="emoji-card">{word.emoji}</div>
@@ -705,7 +861,7 @@ export default function Home() {
             <small>{isCopyPhase ? "看词拼写说明" : "听音拼写说明"}</small>
             <h2 id="practice-help-title">怎么练？</h2>
             <p>{isCopyPhase
-              ? "上方灰色韩文就是目标答案。请按初声、中声、收音的顺序点击下面的页面键盘，不需要输入罗马音。"
+              ? `上方灰色韩文就是目标答案。请按初声、中声、收音的顺序${nativeKeyboard ? "使用系统韩语键盘" : "点击下面的页面键盘"}，不需要输入罗马音。`
               : "先听韩语发音，再按初声、中声、收音的顺序拼写。完全不记得时可以直接查看韩文答案，不必故意答错。"}</p>
             <div className="hangul-compose-guide">
               <strong>韩文按键顺序</strong><span>初声 → 中声 →（收音）</span>
@@ -713,7 +869,7 @@ export default function Home() {
               <div><span>上下</span><b lang="ko">고 = ㄱ + ㅗ</b></div>
               <div><span>有收音</span><b lang="ko">안 = ㅇ + ㅏ + ㄴ</b></div>
               <div className="double-consonant-tip">
-                <span>双辅音</span><b lang="ko">ㄸ = ㄷ + ㄷ</b><small>连续点两次；ㄲ、ㅃ、ㅆ、ㅉ 同理</small>
+                <span>双辅音</span><b lang="ko">{nativeKeyboard ? "Shift + E = ㄸ" : "ㄸ = ㄷ + ㄷ"}</b><small>{nativeKeyboard ? "两套式键盘按住 Shift；其他双辅音同理" : "连续点两次；ㄲ、ㅃ、ㅆ、ㅉ 同理"}</small>
               </div>
             </div>
             <div className="practice-help-legend"><span><i className="legend-correct" />黑色：正确</span><span><i className="legend-wrong" />红色：需修改</span><span><i className="legend-pending" />灰色：未输入</span></div>
@@ -754,30 +910,48 @@ export default function Home() {
           autoCapitalize="none"
           autoComplete="off"
           onChange={(event) => {
+            if (submitting) return;
+            if (event.target.value.trim()) markWordStudied();
             setKeyboardJamo("");
             setAnswer(event.target.value.replace(/\s/g, ""));
           }}
-          onKeyDown={(event) => { if (event.key === "Enter") submit(); }}
+          onKeyDown={(event) => { if (event.key === "Enter" && !event.nativeEvent.isComposing) submit(); }}
           aria-label="输入韩语拼写"
         />
 
         <div className="translation"><strong>{word.chinese}</strong>{showEnglish && <span>{word.english}</span>}</div>
         {revealSpelling && <div className="answer-reveal" role="status"><span>{manualReveal ? "韩文答案" : `提示答案 · ${SPELLING_REVEAL_ERROR_LIMIT}/${SPELLING_REVEAL_ERROR_LIMIT}`}</span><strong lang="ko">{word.korean}</strong><div><small>页面键盘顺序</small><b lang="ko">{word.korean} = {wordKeystrokes}</b><em>重新拼写正确后继续</em></div></div>}
-        <p aria-live="polite" className={`feedback ${answer && !isExactSpelling(answer, word.korean) ? "error" : ""}`}>{message || (isCopyPhase ? "照着灰色韩文，用下方键盘重新拼写（不是写读音）" : session.phase === "retry" ? "重新写对这个听写错词；不会时可点右侧提示" : "根据发音拼写韩文；不会时可点右侧提示")}</p>
+        <p aria-live="polite" className={`feedback ${answer && !answerFollowsTarget ? "error" : ""}`}>{message || (isCopyPhase ? `照着灰色韩文，用${nativeKeyboard ? "系统韩语键盘" : "下方键盘"}重新拼写（不是写读音）` : session.phase === "retry" ? "重新写对这个听写错词；不会时可点右侧提示" : "根据发音拼写韩文；不会时可点右侧提示")}</p>
       </section>
 
       <section className="keyboard-area">
         <div className="utility-row">
           <button onClick={() => setMuted(!muted)}>{muted ? "🔇" : "🔊"} 自动发音</button>
           <button onClick={() => setShowEnglish(!showEnglish)}>EN {showEnglish ? "开启" : "关闭"}</button>
+          {!nativeKeyboard && <button aria-pressed={autoConfirm} onClick={() => setAutoConfirm(!autoConfirm)}>✓ {autoConfirm ? "拼对即过" : "手动确认"}</button>}
           <button onClick={() => { setAnswer(""); setKeyboardJamo(""); setMessage(""); }}>↻ 重来</button>
         </div>
 
         {!nativeKeyboard && <div className="keyboard">
           {KEYS.map((row, rowIndex) => <div className="key-row" key={rowIndex}>
-            {row.map((key) => <button key={key} onClick={() => typeKey(key)}>{key}</button>)}
-            {rowIndex === 2 && <button className="delete" onClick={deleteKey} aria-label="删除一个韩文字母">⌫</button>}
+            {row.map((key) => <button disabled={submitting} key={key} onClick={() => typeKey(key)}>{key}</button>)}
+            {rowIndex === 2 && <button disabled={submitting} className="delete" onClick={deleteKey} aria-label="删除一个韩文字母">⌫</button>}
           </div>)}
+        </div>}
+        {nativeKeyboard && <div className="physical-keyboard-guide" role="group" aria-label="电脑韩语键位参考">
+          <div className="physical-keyboard-heading"><strong>电脑键位参考</strong><span>韩语两套式 · 2-Set</span></div>
+          <div className="physical-keyboard-rows">
+            {KEYS.map((row, rowIndex) => <div className="physical-key-row" key={rowIndex}>
+              {row.map((hangul, keyIndex) => {
+                const latin = PHYSICAL_KEY_ROWS[rowIndex][keyIndex];
+                const shifted = SHIFTED_PHYSICAL_KEYS[latin];
+                return <kbd className="physical-key" key={latin} aria-label={`${latin} 对应 ${hangul}${shifted ? `；Shift 加 ${latin} 对应 ${shifted}` : ""}`}>
+                  <span>{latin}</span><strong lang="ko">{hangul}</strong>{shifted && <small lang="ko">⇧{shifted}</small>}
+                </kbd>;
+              })}
+            </div>)}
+          </div>
+          <p>先切换电脑输入法至韩语两套式，再按实体键盘输入。复合元音依次按键；双辅音按 Shift + 对应字母。</p>
         </div>}
         <div className="bottom-actions">
           <button className="native" onClick={() => {
@@ -790,7 +964,7 @@ export default function Home() {
               inputRef.current?.blur();
             }
           }}>{nativeKeyboard ? "显示页面键盘" : "使用系统韩语键盘"}</button>
-          <button className="check" disabled={!answer} onClick={submit}>检查答案 <span>↵</span></button>
+          <button className="check" disabled={!answer || submitting} onClick={() => submit()}>检查答案 <span>↵</span></button>
         </div>
       </section>
     </main>

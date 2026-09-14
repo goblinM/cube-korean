@@ -10,6 +10,8 @@ test("composes simple words from page-keyboard jamo", () => {
 test("moves a provisional final consonant into the next syllable", () => {
   assert.equal(composeHangul("ㅇㅜㅇㅠ"), "우유");
   assert.equal(composeHangul("ㄹㅏㅌㅔ"), "라테");
+  assert.equal(composeHangul("ㄷㅏㄹㄱㅑ", "달걀"), "달갸");
+  assert.equal(composeHangul("ㄷㅏㄹㄱㅑㄹ", "달걀"), "달걀");
 });
 
 test("supports compound vowels, double initials and compound finals", () => {
@@ -21,6 +23,9 @@ test("supports compound vowels, double initials and compound finals", () => {
 test("uses the target to resolve an ambiguous repeated consonant", () => {
   assert.equal(composeHangul("ㄹㅏㄷㄷㅔ", "라떼"), "라떼");
   assert.equal(composeHangul("ㅇㅏㄱㄱㅣ", "악기"), "악기");
+  assert.equal(composeHangul("ㅇㅗㅣㄴㅈㅈㅗㄱ", "왼쪽"), "왼쪽");
+  assert.equal(composeHangul("ㄴㅏㄹㅅㅅㅣ", "날씨"), "날씨");
+  assert.equal(composeHangul("ㅅㅣㄴㅂㅏㄹㄱㄱㅡㄴ", "신발끈"), "신발끈");
 });
 
 test("keeps incomplete input visible", () => {

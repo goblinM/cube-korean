@@ -21,11 +21,15 @@ npm run dev
 npm run build
 npm run lint
 npm test
+npm run test:e2e
+npm run test:all
 ```
 
 - `npm run build` 是当前已验证的最小构建检查；
 - `npm run lint` 检查TypeScript、React和可访问性规则；
-- `npm test` 会先构建，再运行 `tests/*.test.mjs`；当前测试覆盖页面渲染、三套课程结构、韩语拼写与音节组合、TTS降级、学习会话、错词复习、顺序解锁、掌握度和本机持久化。
+- `npm test` 会先构建，再运行 `tests/*.test.mjs`；当前74项测试覆盖页面渲染、十大课程结构、韩语拼写与音节组合、TTS降级、学习会话、错词复习、顺序解锁、掌握度和本机持久化；
+- `npm run test:e2e` 使用本机Chrome运行桌面端和390×844移动端的20项核心交互回归；
+- `npm run test:all` 依次执行代码检查、生产构建、函数测试和浏览器端测试，作为发布前完整验证。
 
 ## 韩语音频生成
 

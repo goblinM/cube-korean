@@ -5,6 +5,7 @@ export type DailyLearningActivity = {
   sessions: number;
   words: number;
   accuracyTotal: number;
+  studiedWordIds?: string[];
 };
 
 export type LearningActivity = {
@@ -42,7 +43,10 @@ export function isLearningActivity(value: unknown): value is LearningActivity {
       && day
       && Number.isInteger(day.sessions) && day.sessions >= 0
       && Number.isInteger(day.words) && day.words >= 0
-      && typeof day.accuracyTotal === "number" && Number.isFinite(day.accuracyTotal) && day.accuracyTotal >= 0);
+      && typeof day.accuracyTotal === "number" && Number.isFinite(day.accuracyTotal) && day.accuracyTotal >= 0
+      && (day.studiedWordIds === undefined || (Array.isArray(day.studiedWordIds)
+        && day.studiedWordIds.every((id) => typeof id === "string" && id.length > 0)
+        && new Set(day.studiedWordIds).size === day.studiedWordIds.length)));
 }
 
 /** 读取每日学习活动；损坏或未知版本的数据不会进入统计。 */
@@ -55,10 +59,27 @@ export function readLearningActivity(storage: StorageReader): LearningActivity {
   }
 }
 
-/** 记录一次完成的课程或专项复习，并返回更新后的活动数据。 */
+/** 首次输入或主动查看一个词时，按本地日期去重记录实际练过的词。 */
+export function recordStudiedWord(storage: StorageWriter & StorageReader, wordId: string, studiedAt = new Date()): LearningActivity {
+  const activity = readLearningActivity(storage);
+  const key = localDateKey(studiedAt);
+  const previous = activity.days[key] ?? { sessions: 0, words: 0, accuracyTotal: 0 };
+  const studiedWordIds = previous.studiedWordIds ?? [];
+  if (!wordId || studiedWordIds.includes(wordId)) return activity;
+  const updated = {
+    ...activity,
+    days: {
+      ...activity.days,
+      [key]: { ...previous, words: previous.words + 1, studiedWordIds: [...studiedWordIds, wordId] },
+    },
+  };
+  storage.setItem(LEARNING_ACTIVITY_STORAGE_KEY, JSON.stringify(updated));
+  return updated;
+}
+
+/** 仅在课程或专项复习结算时增加完成轮次和正确率；词数由逐词练习记录。 */
 export function recordLearningActivity(
   storage: StorageWriter & StorageReader,
-  wordCount: number,
   accuracy: number,
   completedAt = new Date(),
 ): LearningActivity {
@@ -71,8 +92,9 @@ export function recordLearningActivity(
       ...activity.days,
       [key]: {
         sessions: previous.sessions + 1,
-        words: previous.words + Math.max(0, Math.round(wordCount)),
+        words: previous.words,
         accuracyTotal: previous.accuracyTotal + Math.min(100, Math.max(0, accuracy)),
+        ...(previous.studiedWordIds ? { studiedWordIds: previous.studiedWordIds } : {}),
       },
     },
   };
@@ -102,9 +124,13 @@ export function summarizeLearningActivity(activity: LearningActivity, today = ne
   }
 
   const cursor = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  if (!(activity.days[localDateKey(cursor)]?.sessions > 0)) cursor.setDate(cursor.getDate() - 1);
+  const activeOn = (date: Date) => {
+    const day = activity.days[localDateKey(date)];
+    return Boolean(day && (day.sessions > 0 || day.words > 0));
+  };
+  if (!activeOn(cursor)) cursor.setDate(cursor.getDate() - 1);
   let streak = 0;
-  while (activity.days[localDateKey(cursor)]?.sessions > 0) {
+  while (activeOn(cursor)) {
     streak += 1;
     cursor.setDate(cursor.getDate() - 1);
   }
