@@ -636,8 +636,9 @@ export default function Home() {
         <section className="hero">
           <div className="hero-copy">
             <div className="eyebrow">TODAY&apos;S KOREAN</div>
-            <h1>听见生活，<br />写出韩语。</h1>
-            <p>不从字母表重新开始。直接进入真实生活词汇，用看词拼写和听音默写，把每一个韩语单词真正记下来。</p>
+            <h1>听见生活<br />写出韩语</h1>
+            <p>不从字母表重新开始。</p>
+            <p>直接进入真实生活词汇，用看词拼写和听音默写，把每一个韩语单词真正记下来。</p>
           </div>
 
           <div className="lesson-map">
