@@ -6,6 +6,7 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 const isBrowserTest = process.env.CUBE_E2E === "true";
 
 const localBindingConfig = {
+  name: process.env.CUBE_WORKER_NAME || "cube-korean",
   main: "./worker/index.ts",
   compatibility_flags: ["nodejs_compat"],
 };
