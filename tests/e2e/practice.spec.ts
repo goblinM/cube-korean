@@ -64,6 +64,26 @@ async function seedPractice(page: Page, options: SeedOptions = {}) {
   await expect(page.getByRole("button", { name: "退出练习" })).toBeVisible();
 }
 
+test("释义下拉可切换韩中英、韩中、韩英，并在刷新后保留", async ({ page }) => {
+  await seedPractice(page);
+  const mode = page.getByRole("combobox", { name: "释义显示模式" });
+  const translation = page.locator(".translation");
+  await expect(mode).toHaveValue("ko-zh-en");
+  await expect(translation.getByText("咖啡")).toBeVisible();
+  await expect(translation.getByText("coffee")).toBeVisible();
+
+  await mode.selectOption("ko-zh");
+  await expect(translation.getByText("咖啡")).toBeVisible();
+  await expect(translation.getByText("coffee")).toHaveCount(0);
+
+  await mode.selectOption("ko-en");
+  await expect(translation.getByText("咖啡")).toHaveCount(0);
+  await expect(translation.getByText("coffee")).toBeVisible();
+  await page.reload();
+  await expect(mode).toHaveValue("ko-en");
+  await expect(page.locator(".translation").getByText("coffee")).toBeVisible();
+});
+
 test("今日词数在首次拼写时计入，未完成整关退出后仍保留且同词不重复", async ({ page }) => {
   await seedPractice(page);
   await page.getByRole("button", { name: "ㅋ", exact: true }).click();

@@ -26,7 +26,7 @@ test("exports and restores validated progress, preferences, and location", () =>
   const progress = recordLessonResult(createEmptyProgress(), lesson.id, 90, [], "2026-09-08T00:00:00.000Z");
   const source = memoryStorage({
     [PROGRESS_STORAGE_KEY]: JSON.stringify(progress),
-    [LEARNING_PREFERENCES_STORAGE_KEY]: JSON.stringify({ version: 1, showEnglish: false, nativeKeyboard: false, muted: true }),
+    [LEARNING_PREFERENCES_STORAGE_KEY]: JSON.stringify({ version: 1, translationMode: "ko-en", nativeKeyboard: false, muted: true }),
     [LEARNING_LOCATION_STORAGE_KEY]: JSON.stringify({ version: 1, chapterId: dailyFoodChapter.id, lessonId: lesson.id }),
     [LEARNING_ACTIVITY_STORAGE_KEY]: JSON.stringify({ version: 1, days: { "2026-09-09": { sessions: 1, words: 20, accuracyTotal: 90 } } }),
     [DAILY_GOAL_STORAGE_KEY]: "2",
@@ -36,6 +36,7 @@ test("exports and restores validated progress, preferences, and location", () =>
   const restored = restoreLearningBackup(target, [dailyFoodChapter], raw);
   assert.equal(restored.progress.lessons[lesson.id].bestAccuracy, 90);
   assert.equal(JSON.parse(target.getItem(LEARNING_PREFERENCES_STORAGE_KEY)).muted, true);
+  assert.equal(JSON.parse(target.getItem(LEARNING_PREFERENCES_STORAGE_KEY)).translationMode, "ko-en");
   assert.equal(JSON.parse(target.getItem(LEARNING_PREFERENCES_STORAGE_KEY)).autoConfirm, true);
   assert.equal(target.getItem(LEARNING_CHECKPOINT_STORAGE_KEY), null);
   assert.equal(JSON.parse(target.getItem(LEARNING_ACTIVITY_STORAGE_KEY)).days["2026-09-09"].sessions, 1);
@@ -66,6 +67,7 @@ test("restores a pre-activity backup with default daily tracking settings", () =
   const storage = memoryStorage();
   restoreLearningBackup(storage, [dailyFoodChapter], oldBackup);
   assert.equal(JSON.parse(storage.getItem(LEARNING_PREFERENCES_STORAGE_KEY)).autoConfirm, true);
+  assert.equal(JSON.parse(storage.getItem(LEARNING_PREFERENCES_STORAGE_KEY)).translationMode, "ko-zh-en");
   assert.equal(storage.getItem(LEARNING_ACTIVITY_STORAGE_KEY), null);
   assert.equal(storage.getItem(DAILY_GOAL_STORAGE_KEY), "1");
 });
