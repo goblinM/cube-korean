@@ -26,16 +26,21 @@ function memoryStorage(initial = {}) {
 
 test("round-trips learning preferences and falls back from corrupt data", () => {
   const storage = memoryStorage();
-  writeLearningPreferences(storage, { showEnglish: false, nativeKeyboard: false, muted: true, autoConfirm: false });
-  assert.deepEqual(readLearningPreferences(storage), { version: 1, showEnglish: false, nativeKeyboard: false, muted: true, autoConfirm: false });
+  for (const translationMode of ["ko-zh-en", "ko-zh", "ko-en"]) {
+    writeLearningPreferences(storage, { translationMode, nativeKeyboard: false, muted: true, autoConfirm: false });
+    assert.deepEqual(readLearningPreferences(storage), { version: 1, translationMode, nativeKeyboard: false, muted: true, autoConfirm: false });
+  }
   assert.deepEqual(readLearningPreferences(memoryStorage({ [LEARNING_PREFERENCES_STORAGE_KEY]: "{" })), DEFAULT_LEARNING_PREFERENCES);
+  assert.deepEqual(readLearningPreferences(memoryStorage({ [LEARNING_PREFERENCES_STORAGE_KEY]: JSON.stringify({ version: 1, translationMode: "invalid", nativeKeyboard: true, muted: false }) })), DEFAULT_LEARNING_PREFERENCES);
 });
 
-test("enables page-keyboard auto confirmation when migrating old preferences", () => {
-  const legacy = memoryStorage({
-    [LEARNING_PREFERENCES_STORAGE_KEY]: JSON.stringify({ version: 1, showEnglish: false, nativeKeyboard: false, muted: true }),
-  });
-  assert.deepEqual(readLearningPreferences(legacy), { version: 1, showEnglish: false, nativeKeyboard: false, muted: true, autoConfirm: true });
+test("migrates the old English switch and enables page-keyboard auto confirmation", () => {
+  for (const [showEnglish, translationMode] of [[true, "ko-zh-en"], [false, "ko-zh"]]) {
+    const legacy = memoryStorage({
+      [LEARNING_PREFERENCES_STORAGE_KEY]: JSON.stringify({ version: 1, showEnglish, nativeKeyboard: false, muted: true }),
+    });
+    assert.deepEqual(readLearningPreferences(legacy), { version: 1, translationMode, nativeKeyboard: false, muted: true, autoConfirm: true });
+  }
 });
 
 test("restores an unfinished lesson at its current phase and position", () => {

@@ -4,9 +4,9 @@
 * { box-sizing:border-box; }
 html, body { margin:0; min-height:100%; max-width:100%; overflow-x:hidden; background:var(--paper); color:var(--ink); }
 body { font-family:Arial,"Noto Sans KR","PingFang SC",sans-serif; }
-button, input { font:inherit; }
+button, input, select { font:inherit; }
 button { color:inherit; }
-button:focus-visible, input:focus-visible { outline:3px solid #7557e8; outline-offset:3px; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline:3px solid #7557e8; outline-offset:3px; }
 
 .map-page { min-height:100vh; overflow:hidden; background:radial-gradient(circle at 80% 20%,#fff 0,transparent 34%),var(--paper); padding:26px 6vw 50px; }
 .brand-row { max-width:1240px; margin:auto; display:flex; align-items:center; justify-content:space-between; }
@@ -48,6 +48,8 @@ button:focus-visible, input:focus-visible { outline:3px solid #7557e8; outline-o
 .translation { display:flex; flex-direction:column; align-items:center; gap:5px; margin-top:11px; }.translation strong { font-size:16px; }.translation span { color:#aaa; font-family:Georgia,serif; font-size:15px; }.feedback { min-height:18px; font-size:12px; color:#aaa; margin:21px 0 0; }.feedback.error { color:var(--red); }
 .answer-reveal { display:flex; align-items:center; gap:11px; max-width:min(92vw,620px); margin-top:16px; padding:10px 13px; border:1px solid #d8d8d2; border-radius:12px; background:#fff; color:var(--muted); font-size:14px; }.answer-reveal>strong { color:var(--ink); font-size:23px; }.answer-reveal>div { display:grid; gap:2px; min-width:0; padding-left:11px; border-left:1px solid #e4e2dc; }.answer-reveal small,.answer-reveal em { font-size:9px; font-style:normal; }.answer-reveal b { color:#55584f; font-size:12px; overflow-wrap:anywhere; }.answer-reveal em { color:var(--muted); }
 .keyboard-area { background:var(--paper); border-top:1px solid #ebe9e1; padding:13px 4vw 20px; }.utility-row { max-width:780px; margin:0 auto 12px; display:flex; justify-content:center; gap:8px; }.utility-row button { border:1px solid #e2e0d8; background:white; padding:7px 11px; border-radius:20px; font-size:11px; color:#777; cursor:pointer; }
+.translation-mode-select { min-height:32px; padding:6px 10px; border:1px solid #e2e0d8; border-radius:20px; background:#fff; color:#555850; font-size:11px; font-weight:700; cursor:pointer; }
+.translation span:only-child { color:var(--ink); font-family:Arial,"Noto Sans KR","PingFang SC",sans-serif; font-size:16px; font-weight:700; }
 .keyboard { max-width:780px; margin:auto; }.key-row { display:flex; justify-content:center; gap:7px; margin-bottom:7px; }.key-row button { width:58px; height:42px; border:1px solid #e2e0d8; background:white; border-radius:10px; font-weight:700; font-size:17px; box-shadow:0 2px 0 #dedcd4; cursor:pointer; }.key-row button:active { transform:translateY(2px); box-shadow:none; }.key-row .delete { margin-left:7px; background:#deddd6; }
 .physical-keyboard-guide { width:min(100%,720px); margin:0 auto; padding:10px 14px 8px; border:1px solid #e2e0d8; border-radius:16px; background:#fff; }
 .physical-keyboard-heading { display:flex; align-items:baseline; justify-content:center; gap:10px; margin-bottom:6px; }.physical-keyboard-heading strong { font-size:12px; }.physical-keyboard-heading span { color:#82857d; font-size:10px; }
