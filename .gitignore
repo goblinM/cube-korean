@@ -54,3 +54,5 @@ yarn-error.log*
 # local editor settings
 /.idea/
 /.vscode/
+
+/docs/
