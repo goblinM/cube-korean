@@ -34,6 +34,20 @@ test("round-trips learning preferences and falls back from corrupt data", () => 
   assert.deepEqual(readLearningPreferences(memoryStorage({ [LEARNING_PREFERENCES_STORAGE_KEY]: JSON.stringify({ version: 1, translationMode: "invalid", nativeKeyboard: true, muted: false }) })), DEFAULT_LEARNING_PREFERENCES);
 });
 
+test("new mobile learners default to the page keyboard without overriding saved preferences", () => {
+  assert.deepEqual(readLearningPreferences(memoryStorage(), false), {
+    ...DEFAULT_LEARNING_PREFERENCES,
+    nativeKeyboard: false,
+  });
+  const saved = memoryStorage({
+    [LEARNING_PREFERENCES_STORAGE_KEY]: JSON.stringify({
+      ...DEFAULT_LEARNING_PREFERENCES,
+      nativeKeyboard: true,
+    }),
+  });
+  assert.equal(readLearningPreferences(saved, false).nativeKeyboard, true);
+});
+
 test("migrates the old English switch and enables page-keyboard auto confirmation", () => {
   for (const [showEnglish, translationMode] of [[true, "ko-zh-en"], [false, "ko-zh"]]) {
     const legacy = memoryStorage({

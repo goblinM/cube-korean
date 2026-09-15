@@ -44,13 +44,16 @@ export function normalizeLearningPreferences(value: unknown): LearningPreference
   };
 }
 
-/** 读取用户的练习界面偏好，字段不完整或数据损坏时使用安全默认值。 */
-export function readLearningPreferences(storage: StorageReader): LearningPreferences {
+/** 读取用户的练习界面偏好；首次访问可按设备选择输入键盘默认值。 */
+export function readLearningPreferences(storage: StorageReader, defaultNativeKeyboard = true): LearningPreferences {
+  const fallback = defaultNativeKeyboard
+    ? DEFAULT_LEARNING_PREFERENCES
+    : { ...DEFAULT_LEARNING_PREFERENCES, nativeKeyboard: false };
   try {
     const raw = storage.getItem(LEARNING_PREFERENCES_STORAGE_KEY);
-    return raw ? normalizeLearningPreferences(JSON.parse(raw)) ?? DEFAULT_LEARNING_PREFERENCES : DEFAULT_LEARNING_PREFERENCES;
+    return raw ? normalizeLearningPreferences(JSON.parse(raw)) ?? fallback : fallback;
   } catch {
-    return DEFAULT_LEARNING_PREFERENCES;
+    return fallback;
   }
 }
 

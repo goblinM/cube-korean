@@ -24,3 +24,24 @@ test("首页展示今日学习词数，齿轮入口打开学习数据与设置",
   await expect(page.getByRole("heading", { name: "学习数据" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "每日目标" })).toBeVisible();
 });
+
+test("三种常见手机尺寸首屏完整显示开始本关", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile-chrome", "只验证移动端布局");
+  for (const viewport of [
+    { width: 393, height: 852 },
+    { width: 414, height: 896 },
+    { width: 360, height: 780 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+    const button = page.getByRole("button", { name: "开始本关" });
+    await expect(button).toBeVisible();
+    const layout = await page.evaluate(() => ({
+      viewportHeight: window.innerHeight,
+      pageHeight: document.documentElement.scrollHeight,
+      buttonBottom: document.querySelector(".primary")?.getBoundingClientRect().bottom ?? Infinity,
+    }));
+    expect(layout.pageHeight).toBeLessThanOrEqual(layout.viewportHeight);
+    expect(layout.buttonBottom).toBeLessThanOrEqual(layout.viewportHeight);
+  }
+});
