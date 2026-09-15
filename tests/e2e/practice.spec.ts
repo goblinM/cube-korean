@@ -64,6 +64,23 @@ async function seedPractice(page: Page, options: SeedOptions = {}) {
   await expect(page.getByRole("button", { name: "退出练习" })).toBeVisible();
 }
 
+test("首次访问按屏幕默认输入方式且不会自动唤起手机系统键盘", async ({ page }, testInfo) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "开始本关" }).click();
+
+  const isMobile = testInfo.project.name === "mobile-chrome";
+  const input = page.getByLabel("输入韩语拼写");
+  if (isMobile) {
+    await expect(page.getByRole("button", { name: "使用系统韩语键盘" })).toBeVisible();
+    await expect(input).toHaveAttribute("readonly", "");
+    await expect(page.locator(".keyboard")).toBeVisible();
+    await expect(input).not.toBeFocused();
+  } else {
+    await expect(page.getByRole("button", { name: "显示页面键盘" })).toBeVisible();
+    await expect(input).not.toHaveAttribute("readonly", "");
+  }
+});
+
 test("释义下拉可切换韩中英、韩中、韩英，并在刷新后保留", async ({ page }) => {
   await seedPractice(page);
   const mode = page.getByRole("combobox", { name: "释义显示模式" });

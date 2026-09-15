@@ -162,7 +162,8 @@ export default function Home() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      const preferences = readLearningPreferences(window.localStorage);
+      const defaultNativeKeyboard = !window.matchMedia("(max-width: 760px)").matches;
+      const preferences = readLearningPreferences(window.localStorage, defaultNativeKeyboard);
       setTranslationMode(preferences.translationMode);
       setNativeKeyboard(preferences.nativeKeyboard);
       setMuted(preferences.muted);
