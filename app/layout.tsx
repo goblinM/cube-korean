@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { StorageUnavailableNotice } from "./components/storage-unavailable-notice";
+import { INDEXING_ALLOWED, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "./site-config";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,17 +15,34 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CubeKorean · 韩语生活词汇听写",
-  description: "通过看词拼写和听音默写，真正记住生活韩语。",
-  icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+  metadataBase: SITE_URL,
+  title: `${SITE_NAME} · 韩语生活词汇听写`,
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  alternates: { canonical: "/" },
+  robots: INDEXING_ALLOWED ? { index: true, follow: true } : { index: false, follow: false, noarchive: true },
+  openGraph: {
+    type: "website",
+    locale: "zh_CN",
+    url: "/",
+    siteName: SITE_NAME,
+    title: `${SITE_NAME} · 韩语生活词汇听写`,
+    description: SITE_DESCRIPTION,
+    images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: "CubeKorean 韩语生活词汇听写" }],
   },
+  twitter: { card: "summary_large_image", title: `${SITE_NAME} · 韩语生活词汇听写`, description: SITE_DESCRIPTION, images: ["/og-image.svg"] },
+  icons: {
+    icon: [{ url: "/favicon.png", type: "image/png", sizes: "32x32" }],
+    shortcut: "/favicon.png",
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  manifest: "/manifest.webmanifest",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  themeColor: "#171914",
 };
 
 export default function RootLayout({
@@ -37,6 +56,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <StorageUnavailableNotice />
       </body>
     </html>
   );
