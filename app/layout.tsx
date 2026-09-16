@@ -32,8 +32,9 @@ export const metadata: Metadata = {
   },
   twitter: { card: "summary_large_image", title: `${SITE_NAME} · 韩语生活词汇听写`, description: SITE_DESCRIPTION, images: ["/og-image.svg"] },
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: [{ url: "/favicon.png", type: "image/png", sizes: "32x32" }],
+    shortcut: "/favicon.png",
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
   manifest: "/manifest.webmanifest",
 };
