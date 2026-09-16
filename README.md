@@ -33,3 +33,5 @@ npm run build
 5. `docs/ARCHITECTURE.md`
 
 当前任务和已知测试缺口分别记录在 `docs/TODO.md` 与 `docs/DEBUG.md`。
+
+上线试用、`develop → release` 发布流程、Cloudflare 双环境变量、GitHub 分支保护和人工验收事项见 [`LAUNCH_CHECKLIST.md`](./LAUNCH_CHECKLIST.md)。

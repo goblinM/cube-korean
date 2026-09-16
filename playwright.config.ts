@@ -20,7 +20,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "CUBE_E2E=true npm run dev",
+    command: "CUBE_E2E=true CUBE_WORKER_NAME=cube-korean-dev NEXT_PUBLIC_ALLOW_INDEXING=false npm run dev",
     url: "http://127.0.0.1:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
