@@ -101,6 +101,17 @@ test("释义下拉可切换韩中英、韩中、韩英，并在刷新后保留",
   await expect(page.locator(".translation").getByText("coffee")).toBeVisible();
 });
 
+test("页面韩语键盘提供独立按键音开关并保存选择", async ({ page }) => {
+  await seedPractice(page);
+  const keySound = page.getByRole("button", { name: /按键音/ });
+  await expect(keySound).toHaveAttribute("aria-pressed", "true");
+  await keySound.click();
+  await expect(keySound).toHaveAttribute("aria-pressed", "false");
+  await page.getByRole("button", { name: "ㅋ", exact: true }).click();
+  await page.reload();
+  await expect(page.getByRole("button", { name: /按键音/ })).toHaveAttribute("aria-pressed", "false");
+});
+
 test("今日词数在首次拼写时计入，未完成整关退出后仍保留且同词不重复", async ({ page }) => {
   await seedPractice(page);
   await page.getByRole("button", { name: "ㅋ", exact: true }).click();

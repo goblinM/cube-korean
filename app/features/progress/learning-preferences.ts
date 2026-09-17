@@ -8,6 +8,7 @@ export type LearningPreferences = {
   nativeKeyboard: boolean;
   muted: boolean;
   autoConfirm: boolean;
+  keySound: boolean;
 };
 
 export const DEFAULT_LEARNING_PREFERENCES: LearningPreferences = {
@@ -16,6 +17,7 @@ export const DEFAULT_LEARNING_PREFERENCES: LearningPreferences = {
   nativeKeyboard: true,
   muted: false,
   autoConfirm: true,
+  keySound: true,
 };
 
 type StorageReader = Pick<Storage, "getItem">;
@@ -34,6 +36,7 @@ export function normalizeLearningPreferences(value: unknown): LearningPreference
     || typeof parsed.nativeKeyboard !== "boolean"
     || typeof parsed.muted !== "boolean"
     || (parsed.autoConfirm !== undefined && typeof parsed.autoConfirm !== "boolean")
+    || (parsed.keySound !== undefined && typeof parsed.keySound !== "boolean")
   ) return null;
   return {
     version: 1,
@@ -41,6 +44,7 @@ export function normalizeLearningPreferences(value: unknown): LearningPreference
     nativeKeyboard: parsed.nativeKeyboard,
     muted: parsed.muted,
     autoConfirm: parsed.autoConfirm ?? true,
+    keySound: typeof parsed.keySound === "boolean" ? parsed.keySound : true,
   };
 }
 
@@ -57,7 +61,7 @@ export function readLearningPreferences(storage: StorageReader, defaultNativeKey
   }
 }
 
-/** 保存释义显示模式、输入键盘、自动发音和页面键盘自动确认偏好。 */
+/** 保存释义、输入键盘、自动发音、按键音和页面键盘自动确认偏好。 */
 export function writeLearningPreferences(storage: StorageWriter, preferences: Omit<LearningPreferences, "version">): void {
   storage.setItem(LEARNING_PREFERENCES_STORAGE_KEY, JSON.stringify({ version: 1, ...preferences } satisfies LearningPreferences));
 }

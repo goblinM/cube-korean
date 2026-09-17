@@ -49,6 +49,7 @@ import {
   writeDailyGoal,
 } from "./features/progress/learning-activity";
 import { playKorean } from "./features/speech/korean-speech";
+import { playKeyboardSound } from "./features/speech/keyboard-sound";
 import { composeHangul } from "./features/spelling/compose-hangul";
 import { isExactSpelling } from "./features/spelling/hangul";
 
@@ -88,6 +89,7 @@ export default function Home() {
   const [nativeKeyboard, setNativeKeyboard] = useState(true);
   const [muted, setMuted] = useState(false);
   const [autoConfirm, setAutoConfirm] = useState(true);
+  const [keySound, setKeySound] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [speechUnavailable, setSpeechUnavailable] = useState(false);
   const [backupMessage, setBackupMessage] = useState("");
@@ -139,6 +141,7 @@ export default function Home() {
       setNativeKeyboard(preferences.nativeKeyboard);
       setMuted(preferences.muted);
       setAutoConfirm(preferences.autoConfirm);
+      setKeySound(preferences.keySound);
       setPreferencesReady(true);
     }, 0);
     return () => window.clearTimeout(timer);
@@ -146,8 +149,8 @@ export default function Home() {
 
   useEffect(() => {
     if (!preferencesReady) return;
-    writeLearningPreferences(resilientBrowserStorage, { translationMode, nativeKeyboard, muted, autoConfirm });
-  }, [autoConfirm, muted, nativeKeyboard, preferencesReady, translationMode]);
+    writeLearningPreferences(resilientBrowserStorage, { translationMode, nativeKeyboard, muted, autoConfirm, keySound });
+  }, [autoConfirm, keySound, muted, nativeKeyboard, preferencesReady, translationMode]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -417,6 +420,7 @@ export default function Home() {
 
   function typeKey(key: string) {
     if (submittingRef.current) return;
+    if (keySound) playKeyboardSound("key");
     const next = keyboardJamo + key;
     const nextAnswer = composeHangul(next, word.korean);
     if (nextAnswer) markWordStudied();
@@ -426,6 +430,7 @@ export default function Home() {
   }
 
   function deleteKey() {
+    if (keySound) playKeyboardSound("delete");
     if (keyboardJamo) {
       const next = keyboardJamo.slice(0, -1);
       setKeyboardJamo(next);
@@ -691,6 +696,7 @@ export default function Home() {
         nativeKeyboard={nativeKeyboard}
         muted={muted}
         autoConfirm={autoConfirm}
+        keySound={keySound}
         translationMode={translationMode}
         answer={answer}
         submitting={submitting}
@@ -698,6 +704,11 @@ export default function Home() {
         onToggleMuted={() => setMuted((current) => !current)}
         onTranslationModeChange={setTranslationMode}
         onToggleAutoConfirm={() => setAutoConfirm((current) => !current)}
+        onToggleKeySound={() => setKeySound((current) => {
+          const enabled = !current;
+          if (enabled) playKeyboardSound("key");
+          return enabled;
+        })}
         onResetAnswer={() => {
           setAnswer("");
           setKeyboardJamo("");
