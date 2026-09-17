@@ -27,8 +27,8 @@ function memoryStorage(initial = {}) {
 test("round-trips learning preferences and falls back from corrupt data", () => {
   const storage = memoryStorage();
   for (const translationMode of ["ko-zh-en", "ko-zh", "ko-en"]) {
-    writeLearningPreferences(storage, { translationMode, nativeKeyboard: false, muted: true, autoConfirm: false });
-    assert.deepEqual(readLearningPreferences(storage), { version: 1, translationMode, nativeKeyboard: false, muted: true, autoConfirm: false });
+    writeLearningPreferences(storage, { translationMode, nativeKeyboard: false, muted: true, autoConfirm: false, keySound: false });
+    assert.deepEqual(readLearningPreferences(storage), { version: 1, translationMode, nativeKeyboard: false, muted: true, autoConfirm: false, keySound: false });
   }
   assert.deepEqual(readLearningPreferences(memoryStorage({ [LEARNING_PREFERENCES_STORAGE_KEY]: "{" })), DEFAULT_LEARNING_PREFERENCES);
   assert.deepEqual(readLearningPreferences(memoryStorage({ [LEARNING_PREFERENCES_STORAGE_KEY]: JSON.stringify({ version: 1, translationMode: "invalid", nativeKeyboard: true, muted: false }) })), DEFAULT_LEARNING_PREFERENCES);
@@ -53,7 +53,7 @@ test("migrates the old English switch and enables page-keyboard auto confirmatio
     const legacy = memoryStorage({
       [LEARNING_PREFERENCES_STORAGE_KEY]: JSON.stringify({ version: 1, showEnglish, nativeKeyboard: false, muted: true }),
     });
-    assert.deepEqual(readLearningPreferences(legacy), { version: 1, translationMode, nativeKeyboard: false, muted: true, autoConfirm: true });
+    assert.deepEqual(readLearningPreferences(legacy), { version: 1, translationMode, nativeKeyboard: false, muted: true, autoConfirm: true, keySound: true });
   }
 });
 

@@ -12,6 +12,7 @@ const SHIFTED_PHYSICAL_KEYS: Record<string, string> = { Q: "ㅃ", W: "ㅉ", E: "
 type HangulKeyboardProps = {
   nativeKeyboard: boolean;
   autoConfirm: boolean;
+  keySound: boolean;
   muted: boolean;
   submitting: boolean;
   answer: string;
@@ -20,6 +21,7 @@ type HangulKeyboardProps = {
   onToggleMuted: () => void;
   onTranslationModeChange: (mode: TranslationMode) => void;
   onToggleAutoConfirm: () => void;
+  onToggleKeySound: () => void;
   onResetAnswer: () => void;
   onTypeKey: (key: string) => void;
   onDeleteKey: () => void;
@@ -28,12 +30,13 @@ type HangulKeyboardProps = {
 };
 
 /** 展示页面韩语键盘或电脑键位参考，并转发用户输入意图。 */
-export function HangulKeyboard({ nativeKeyboard, autoConfirm, muted, submitting, answer, translationMode, inputRef, onToggleMuted, onTranslationModeChange, onToggleAutoConfirm, onResetAnswer, onTypeKey, onDeleteKey, onToggleNativeKeyboard, onSubmit }: HangulKeyboardProps) {
+export function HangulKeyboard({ nativeKeyboard, autoConfirm, keySound, muted, submitting, answer, translationMode, inputRef, onToggleMuted, onTranslationModeChange, onToggleAutoConfirm, onToggleKeySound, onResetAnswer, onTypeKey, onDeleteKey, onToggleNativeKeyboard, onSubmit }: HangulKeyboardProps) {
   return (
     <section className="keyboard-area">
       <div className="utility-row">
         <button onClick={onToggleMuted}>{muted ? "🔇" : "🔊"} 自动发音</button>
         <select className="translation-mode-select" aria-label="释义显示模式" value={translationMode} onChange={(event) => onTranslationModeChange(event.target.value as TranslationMode)}><option value="ko-zh-en">韩中英</option><option value="ko-zh">韩中</option><option value="ko-en">韩英</option></select>
+        {!nativeKeyboard && <button aria-pressed={keySound} onClick={onToggleKeySound}>{keySound ? "🔉" : "🔇"} 按键音</button>}
         {!nativeKeyboard && <button aria-pressed={autoConfirm} onClick={onToggleAutoConfirm}>✓ {autoConfirm ? "拼对即过" : "手动确认"}</button>}
         <button onClick={onResetAnswer}>↻ 重来</button>
       </div>
