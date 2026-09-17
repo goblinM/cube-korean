@@ -41,7 +41,7 @@ export function playKeyboardSound(
     if (pool.length < POOL_SIZE) {
       audio = new environment.Audio();
       audio.preload = "auto";
-      audio.volume = 0.85;
+      audio.volume = 0.65;
       audio.src = KEYBOARD_SOUND_URLS[kind];
       pool.push(audio);
     } else {

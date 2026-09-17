@@ -19,8 +19,8 @@ test("plays local CC0 key and backspace samples at the configured volume", () =>
   assert.equal(playKeyboardSound("key", environment), true);
   assert.equal(playKeyboardSound("delete", environment), true);
   assert.deepEqual(played, [
-    { src: KEYBOARD_SOUND_URLS.key, preload: "auto", volume: 0.85 },
-    { src: KEYBOARD_SOUND_URLS.delete, preload: "auto", volume: 0.85 },
+    { src: KEYBOARD_SOUND_URLS.key, preload: "auto", volume: 0.65 },
+    { src: KEYBOARD_SOUND_URLS.delete, preload: "auto", volume: 0.65 },
   ]);
 });
 
