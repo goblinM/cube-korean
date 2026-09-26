@@ -1,6 +1,8 @@
 import type { Lesson, LessonWord } from "../data/lessons/types";
 import { summarizeLessonSession, type LessonSession } from "../features/lessons/session";
 import { CoffeeSupportDialog } from "./coffee-support-dialog";
+import { lessonTitle } from "../i18n/course-titles";
+import { useI18n } from "../i18n/i18n-context";
 
 type LessonResultsPageProps = {
   practiceMode: "lesson" | "mistakes";
@@ -38,6 +40,7 @@ export function LessonResultsPage({
   onCloseCoffeeTip,
   onOptOutCoffeeTips,
 }: LessonResultsPageProps) {
+  const { locale, t } = useI18n();
   const isMistakeReview = practiceMode === "mistakes";
   const summary = summarizeLessonSession(session);
   const isGroupComplete = !isMistakeReview && hasNextGroup;
@@ -54,24 +57,24 @@ export function LessonResultsPage({
       <section className="results-card">
         <div className="result-mark">✓</div>
         <div className="eyebrow">{isMistakeReview ? "REVIEW COMPLETE" : session.groupOnly || isGroupComplete ? `GROUP ${session.groupIndex + 1} COMPLETE` : "LESSON COMPLETE"}</div>
-        <h1>{isMistakeReview ? "复习完成！" : session.groupOnly ? `第 ${session.groupIndex + 1} 组重练完成！` : isGroupComplete ? `第 ${session.groupIndex + 1} 组完成！` : "本关完成！"}</h1>
-        <p>{isMistakeReview ? `本轮复习 ${words.length} 个错词` : session.groupOnly ? `已重练第 ${session.groupIndex + 1} 组的 ${wordCount} 个词` : isGroupComplete ? "已完成 5 个词，稍作停顿再继续" : `${lesson.titleKorean} · ${lesson.titleChinese}`}</p>
+        <h1>{isMistakeReview ? t("results.reviewComplete") : session.groupOnly ? t("results.groupReplayComplete", { group: session.groupIndex + 1 }) : isGroupComplete ? t("results.groupComplete", { group: session.groupIndex + 1 }) : t("results.lessonComplete")}</h1>
+        <p>{isMistakeReview ? t("results.reviewSummary", { count: words.length }) : session.groupOnly ? t("results.groupReplaySummary", { group: session.groupIndex + 1, count: wordCount }) : isGroupComplete ? t("results.groupSummary") : `${lesson.titleKorean} · ${lessonTitle(lesson, locale)}`}</p>
         <div className="result-stats">
-          <div><strong>{wordCount}</strong><span>{isGroupComplete ? "本组词汇" : "学习词汇"}</span></div>
-          <div><strong>{accuracy}%</strong><span>{isMistakeReview ? "本轮一次答对率" : "首次听写正确率"}</span></div>
-          <div><strong>{mistakeIds.length}</strong><span>{isMistakeReview ? "仍需复习" : "重练词汇"}</span></div>
+          <div><strong>{wordCount}</strong><span>{isGroupComplete ? t("results.groupWords") : t("results.learnedWords")}</span></div>
+          <div><strong>{accuracy}%</strong><span>{isMistakeReview ? t("results.reviewAccuracy") : t("results.listenAccuracy")}</span></div>
+          <div><strong>{mistakeIds.length}</strong><span>{isMistakeReview ? t("results.needReview") : t("results.retryWords")}</span></div>
         </div>
-        {mistakeIds.length > 0 && <div className="mistake-list"><span>{isMistakeReview ? "本轮出现错误" : isGroupComplete ? "本组已纠正" : "本关已纠正"}</span><div>{mistakeIds.map((id) => <b key={id}>{words.find((word) => word.id === id)?.korean}</b>)}</div></div>}
+        {mistakeIds.length > 0 && <div className="mistake-list"><span>{isMistakeReview ? t("results.errors") : isGroupComplete ? t("results.groupCorrected") : t("results.lessonCorrected")}</span><div>{mistakeIds.map((id) => <b key={id}>{words.find((word) => word.id === id)?.korean}</b>)}</div></div>}
         {coffeeTipMilestone !== null && !isGroupComplete && !isMistakeReview && (
-          <aside className="coffee-tip" aria-label="学习里程碑与自愿支持">
+          <aside className="coffee-tip" aria-label={t("results.coffeeAria")}>
             <span className="coffee-tip-icon" aria-hidden="true">☕</span>
-            <div className="coffee-tip-copy"><strong>已经完成 {completedLessonCount} 关，太棒了！</strong><p>感谢你一直练习！如果 CubeKorean 帮到了你，欢迎自愿请我们喝杯咖啡。</p><button type="button" className="coffee-tip-open" onClick={onOpenCoffeeSupport}>查看支持方式 ↗</button></div>
-            <button type="button" onClick={onCloseCoffeeTip} aria-label="关闭这次提示">×</button>
-            <button type="button" className="coffee-tip-opt-out" onClick={onOptOutCoffeeTips}>不再提示</button>
+            <div className="coffee-tip-copy"><strong>{t("results.milestone", { count: completedLessonCount })}</strong><p>{t("results.coffeeCopy")}</p><button type="button" className="coffee-tip-open" onClick={onOpenCoffeeSupport}>{t("results.support")}</button></div>
+            <button type="button" onClick={onCloseCoffeeTip} aria-label={t("results.closeTip")}>×</button>
+            <button type="button" className="coffee-tip-opt-out" onClick={onOptOutCoffeeTips}>{t("results.optOut")}</button>
           </aside>
         )}
-        <button className="primary" onClick={onContinue}>{isGroupComplete ? `继续第 ${session.groupIndex + 2} 组` : isMistakeReview ? "返回错词本" : session.groupOnly ? "返回关卡地图" : nextLesson ? "进入下一关" : "再练一次"} <span>{isMistakeReview || session.groupOnly || nextLesson || isGroupComplete ? "→" : "↻"}</span></button>
-        <button className="result-link" onClick={onReturn}>{isMistakeReview ? "返回课程地图" : "返回关卡地图"}</button>
+        <button className="primary" onClick={onContinue}>{isGroupComplete ? t("results.nextGroup", { group: session.groupIndex + 2 }) : isMistakeReview ? t("results.backMistakes") : session.groupOnly ? t("results.backMap") : nextLesson ? t("results.nextLesson") : t("results.again")} <span>{isMistakeReview || session.groupOnly || nextLesson || isGroupComplete ? "→" : "↻"}</span></button>
+        <button className="result-link" onClick={onReturn}>{isMistakeReview ? t("results.backCourseMap") : t("results.backMap")}</button>
       </section>
       {showCoffeeSupport && <CoffeeSupportDialog onClose={onCloseCoffeeSupport} />}
     </main>

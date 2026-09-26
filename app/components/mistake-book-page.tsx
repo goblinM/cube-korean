@@ -1,6 +1,8 @@
 import { CHAPTERS, COURSE_WORDS } from "../data/lessons/course";
 import { selectWeakWordIds } from "../features/lessons/weak-review";
 import type { CourseProgress } from "../features/progress/local-progress";
+import { chapterTitle, lessonTitle } from "../i18n/course-titles";
+import { useI18n } from "../i18n/i18n-context";
 
 type MistakeBookPageProps = {
   progress: CourseProgress;
@@ -22,6 +24,7 @@ export function MistakeBookPage({
   onStartReview,
   onBack,
 }: MistakeBookPageProps) {
+  const { locale, t } = useI18n();
   const entries = COURSE_WORDS.filter((entry) => {
     if (!progress.mistakes[entry.word.id]) return false;
     if (chapterFilter !== "all" && entry.chapterId !== chapterFilter) return false;
@@ -35,28 +38,30 @@ export function MistakeBookPage({
   return (
     <main className="mistake-page">
       <header className="subpage-header">
-        <button className="back-button" onClick={onBack}>← 返回课程</button>
+        <button className="back-button" onClick={onBack}>← {t("common.backCourse")}</button>
         <div className="brand"><span>ㅋ</span> CubeKorean</div>
       </header>
       <section className="mistake-shell">
         <div className="mistake-heading">
-          <div><div className="eyebrow">REVIEW BOOK</div><h1>错词本</h1><p>连续两次专项复习一次答对后，单词会自动移出错词本。</p></div>
-          <strong>{Object.keys(progress.mistakes).length}<small>待掌握词</small></strong>
+          <div><div className="eyebrow">REVIEW BOOK</div><h1>{t("mistakes.title")}</h1><p>{t("mistakes.description")}</p></div>
+          <strong>{Object.keys(progress.mistakes).length}<small>{t("mistakes.pending")}</small></strong>
         </div>
         <section className="smart-review-card">
           <span>⚡</span>
-          <div><small>SMART REVIEW</small><h2>智能弱项复习</h2><p>{weakWordIds.length ? `已从全部错词中选出最需要巩固的 ${weakWordIds.length} 个词。` : "完成听音拼写并产生错词后，这里会自动生成短时复习。"}</p></div>
-          <button disabled={!weakWordIds.length} onClick={() => onStartReview(weakWordIds)}>开始复习 <b>→</b></button>
+          <div><small>SMART REVIEW</small><h2>{t("mistakes.smartTitle")}</h2><p>{weakWordIds.length ? t("mistakes.smartReady", { count: weakWordIds.length }) : t("mistakes.smartEmpty")}</p></div>
+          <button disabled={!weakWordIds.length} onClick={() => onStartReview(weakWordIds)}>{t("mistakes.start")} <b>→</b></button>
         </section>
         <div className="mistake-filters">
-          <label>大关卡<select value={chapterFilter} onChange={(event) => onChapterFilterChange(event.target.value)}><option value="all">全部</option>{CHAPTERS.map((chapter) => <option key={chapter.id} value={chapter.id}>{chapter.titleChinese}</option>)}</select></label>
-          <label>小关卡<select value={lessonFilter} onChange={(event) => onLessonFilterChange(event.target.value)}><option value="all">全部</option>{filterLessons.map((lesson) => <option key={lesson.id} value={lesson.id}>{lesson.titleChinese}</option>)}</select></label>
-          <button className="review-button" disabled={!entries.length} onClick={() => onStartReview(entries.map((entry) => entry.word.id))}>复习当前 {entries.length} 词 →</button>
+          <label>{t("mistakes.chapter")}<select value={chapterFilter} onChange={(event) => onChapterFilterChange(event.target.value)}><option value="all">{t("common.all")}</option>{CHAPTERS.map((chapter) => <option key={chapter.id} value={chapter.id}>{chapterTitle(chapter, locale)}</option>)}</select></label>
+          <label>{t("mistakes.lesson")}<select value={lessonFilter} onChange={(event) => onLessonFilterChange(event.target.value)}><option value="all">{t("common.all")}</option>{filterLessons.map((lesson) => <option key={lesson.id} value={lesson.id}>{lessonTitle(lesson, locale)}</option>)}</select></label>
+          <button className="review-button" disabled={!entries.length} onClick={() => onStartReview(entries.map((entry) => entry.word.id))}>{t("mistakes.reviewCurrent", { count: entries.length })}</button>
         </div>
         {entries.length ? <div className="mistake-grid">{entries.map((entry) => {
           const mistake = progress.mistakes[entry.word.id];
-          return <article key={entry.word.id}><span>{entry.word.emoji}</span><div><b lang="ko">{entry.word.korean}</b><p>{entry.word.chinese} · {entry.word.english}</p><small>{entry.chapterTitle} / {entry.lessonTitle} · 错误 {mistake.errorCount} 次 · 已正确复习 {mistake.correctReviews}/2</small></div></article>;
-        })}</div> : <div className="empty-mistakes"><span>✓</span><h2>当前没有错词</h2><p>完成听音拼写后，答错的词会自动出现在这里。</p></div>}
+          const sourceChapter = CHAPTERS.find((item) => item.id === entry.chapterId);
+          const sourceLesson = sourceChapter?.lessons.find((item) => item.id === entry.lessonId);
+          return <article key={entry.word.id}><span>{entry.word.emoji}</span><div><b lang="ko">{entry.word.korean}</b><p>{locale === "en" ? entry.word.english : `${entry.word.chinese} · ${entry.word.english}`}</p><small>{sourceChapter ? chapterTitle(sourceChapter, locale) : entry.chapterTitle} / {sourceLesson ? lessonTitle(sourceLesson, locale) : entry.lessonTitle} · {t("mistakes.errorMeta", { errors: mistake.errorCount, reviews: mistake.correctReviews })}</small></div></article>;
+        })}</div> : <div className="empty-mistakes"><span>✓</span><h2>{t("mistakes.emptyTitle")}</h2><p>{t("mistakes.emptyDescription")}</p></div>}
       </section>
     </main>
   );

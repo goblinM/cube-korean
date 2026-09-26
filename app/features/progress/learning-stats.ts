@@ -12,6 +12,8 @@ export type ChapterLearningStats = {
 };
 
 export type RecentLearningRecord = {
+  chapterId: string;
+  lessonId: string;
   chapterTitle: string;
   lessonTitle: string;
   completedAt: string;
@@ -67,6 +69,8 @@ export function calculateLearningStats(chapters: Chapter[], progress: CourseProg
       .sort((left, right) => Date.parse(right.progress.completedAt) - Date.parse(left.progress.completedAt))
       .slice(0, 5)
       .map((entry) => ({
+        chapterId: entry.chapter.id,
+        lessonId: entry.lesson.id,
         chapterTitle: entry.chapter.titleChinese,
         lessonTitle: entry.lesson.titleChinese,
         completedAt: entry.progress.completedAt,

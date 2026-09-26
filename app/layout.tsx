@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { StorageUnavailableNotice } from "./components/storage-unavailable-notice";
 import { INDEXING_ALLOWED, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "./site-config";
+import { I18nProvider } from "./i18n/i18n-context";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
   title: `${SITE_NAME} · 韩语生活词汇听写`,
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
-  alternates: { canonical: "/" },
+  alternates: { canonical: "/zh", languages: { "zh-CN": "/zh", en: "/en", "x-default": "/zh" } },
   robots: INDEXING_ALLOWED ? { index: true, follow: true } : { index: false, follow: false, noarchive: true },
   openGraph: {
     type: "website",
@@ -55,8 +56,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
-        <StorageUnavailableNotice />
+        <I18nProvider>
+          {children}
+          <StorageUnavailableNotice />
+        </I18nProvider>
       </body>
     </html>
   );

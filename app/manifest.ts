@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: `${SITE_NAME} · 韩语生活词汇听写`,
     short_name: SITE_NAME,
     description: SITE_DESCRIPTION,
-    start_url: "/",
+    start_url: "/zh",
     display: "standalone",
     background_color: "#f7f5ef",
     theme_color: "#171914",

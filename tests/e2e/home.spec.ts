@@ -45,3 +45,17 @@ test("三种常见手机尺寸首屏完整显示开始本关", async ({ page }, 
     expect(layout.buttonBottom).toBeLessThanOrEqual(layout.viewportHeight);
   }
 });
+
+test("英文桌面顶栏与主题卡保持清晰间距且主题名称不被截断", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chrome", "只验证桌面端布局");
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.goto("/en");
+
+  const actions = await page.locator(".header-actions").boundingBox();
+  const chapterSwitcher = await page.locator(".chapter-switcher").boundingBox();
+  expect(actions).not.toBeNull();
+  expect(chapterSwitcher).not.toBeNull();
+  expect(chapterSwitcher!.y - (actions!.y + actions!.height)).toBeGreaterThanOrEqual(20);
+  expect(actions!.x + actions!.width).toBeLessThanOrEqual(1600);
+  await expect(page.getByRole("combobox", { name: "Choose an everyday topic" })).toContainText("Topic 1 · Everyday Food");
+});
