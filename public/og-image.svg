@@ -1,0 +1,14 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#F7F5EF"/>
+  <circle cx="1010" cy="90" r="310" fill="#FFFFFF"/>
+  <rect x="90" y="88" width="112" height="112" rx="32" fill="#171914" transform="rotate(-5 90 88)"/>
+  <text x="146" y="169" fill="#C9F73C" font-family="Arial, sans-serif" font-size="69" font-weight="800" text-anchor="middle">ㅋ</text>
+  <text x="90" y="286" fill="#171914" font-family="Arial, sans-serif" font-size="76" font-weight="800">CubeKorean</text>
+  <text x="90" y="374" fill="#171914" font-family="Arial, sans-serif" font-size="54" font-weight="700">听见生活，写出韩语</text>
+  <text x="92" y="435" fill="#70736B" font-family="Arial, sans-serif" font-size="28">看词拼写 · 听音默写 · 错词复习</text>
+  <g transform="translate(860 258) rotate(-12)">
+    <path d="M0 92L124 20L248 92L124 164L0 92Z" fill="#C9F73C" stroke="#171914" stroke-width="8"/>
+    <path d="M0 92L124 164V306L0 234V92Z" fill="#FF6B35" stroke="#171914" stroke-width="8"/>
+    <path d="M248 92L124 164V306L248 234V92Z" fill="#7557E8" stroke="#171914" stroke-width="8"/>
+  </g>
+</svg>

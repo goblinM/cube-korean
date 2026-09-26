@@ -18,6 +18,7 @@ test("returns the actual page-keyboard sequence for Korean spelling hints", () =
   assert.deepEqual(decomposeHangulToKeystrokes("안"), ["ㅇ", "ㅏ", "ㄴ"]);
   assert.deepEqual(decomposeHangulToKeystrokes("커피"), ["ㅋ", "ㅓ", "ㅍ", "ㅣ"]);
   assert.deepEqual(decomposeHangulToKeystrokes("과일"), ["ㄱ", "ㅗ", "ㅏ", "ㅇ", "ㅣ", "ㄹ"]);
+  assert.deepEqual(decomposeHangulToKeystrokes("예약"), ["ㅇ", "ㅕ", "ㅣ", "ㅇ", "ㅑ", "ㄱ"]);
   assert.deepEqual(decomposeHangulToKeystrokes("값"), ["ㄱ", "ㅏ", "ㅂ", "ㅅ"]);
   assert.deepEqual(decomposeHangulToKeystrokes("딸기"), ["ㄷ", "ㄷ", "ㅏ", "ㄹ", "ㄱ", "ㅣ"]);
   assert.deepEqual(decomposeHangulToKeystrokes("라떼"), ["ㄹ", "ㅏ", "ㄷ", "ㄷ", "ㅔ"]);

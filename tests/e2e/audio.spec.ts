@@ -58,3 +58,19 @@ test("静态音频播放失败时回退到 ko-KR 浏览器语音", async ({ page
   expect(speech).toEqual({ text: "커피", lang: "ko-KR" });
   await expect(page.getByRole("button", { name: "播放韩语发音" })).toBeEnabled();
 });
+
+test("页面键盘分别播放本地按键与退格采样", async ({ page }) => {
+  await seedAudioPractice(page);
+  for (const path of ["/audio/ui/key-press.wav", "/audio/ui/backspace-press.wav"]) {
+    const response = await page.request.get(path);
+    expect(response.ok()).toBeTruthy();
+    expect(response.headers()["content-type"]).toMatch(/audio\/(wav|x-wav)/);
+    expect((await response.body()).byteLength).toBeGreaterThan(1_000);
+  }
+
+  await page.getByRole("button", { name: "ㅋ", exact: true }).click();
+  await page.getByRole("button", { name: "删除一个韩文字母" }).click();
+  const played = await page.evaluate(() => (window as Window & { __cubeAudioState: { audio: string[] } }).__cubeAudioState.audio);
+  expect(played.some((entry) => entry.endsWith("/audio/ui/key-press.wav|1"))).toBeTruthy();
+  expect(played.some((entry) => entry.endsWith("/audio/ui/backspace-press.wav|1"))).toBeTruthy();
+});

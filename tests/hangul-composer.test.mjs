@@ -16,6 +16,8 @@ test("moves a provisional final consonant into the next syllable", () => {
 
 test("supports compound vowels, double initials and compound finals", () => {
   assert.equal(composeHangul("ㄱㅗㅏㅇㅣㄹ"), "과일");
+  assert.equal(composeHangul("ㅇㅕㅣㅇㅑㄱ", "예약"), "예약");
+  assert.equal(composeHangul("ㅇㅑㅣ", "얘"), "얘");
   assert.equal(composeHangul("ㄸㅏㄹㄱㅣ"), "딸기");
   assert.equal(composeHangul("ㄱㅏㅂㅅ"), "값");
 });
