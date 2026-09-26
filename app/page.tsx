@@ -52,11 +52,13 @@ import { playKorean } from "./features/speech/korean-speech";
 import { playKeyboardSound } from "./features/speech/keyboard-sound";
 import { composeHangul } from "./features/spelling/compose-hangul";
 import { isExactSpelling } from "./features/spelling/hangul";
+import { localeFromPath, localePath, translateMessage, useI18n } from "./i18n/i18n-context";
 
 const TOTAL_LESSON_COUNT = CHAPTERS.reduce((total, item) => total + item.lessons.length, 0);
 const CORRECT_ADVANCE_DELAY_MS = 350;
 
 export default function Home() {
+  const { locale, setLocale, t } = useI18n();
   const [started, setStarted] = useState(false);
   const [showMistakeBook, setShowMistakeBook] = useState(false);
   const [showDataCenter, setShowDataCenter] = useState(false);
@@ -137,6 +139,10 @@ export default function Home() {
     const timer = window.setTimeout(() => {
       const defaultNativeKeyboard = !window.matchMedia("(max-width: 760px)").matches;
       const preferences = readLearningPreferences(resilientBrowserStorage, defaultNativeKeyboard);
+      const routeLocale = localeFromPath(window.location.pathname);
+      const nextLocale = routeLocale ?? preferences.uiLocale;
+      setLocale(nextLocale);
+      if (!routeLocale) window.history.replaceState({}, "", localePath(nextLocale));
       setTranslationMode(preferences.translationMode);
       setNativeKeyboard(preferences.nativeKeyboard);
       setMuted(preferences.muted);
@@ -145,12 +151,12 @@ export default function Home() {
       setPreferencesReady(true);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [setLocale]);
 
   useEffect(() => {
     if (!preferencesReady) return;
-    writeLearningPreferences(resilientBrowserStorage, { translationMode, nativeKeyboard, muted, autoConfirm, keySound });
-  }, [autoConfirm, keySound, muted, nativeKeyboard, preferencesReady, translationMode]);
+    writeLearningPreferences(resilientBrowserStorage, { uiLocale: locale, translationMode, nativeKeyboard, muted, autoConfirm, keySound });
+  }, [autoConfirm, keySound, locale, muted, nativeKeyboard, preferencesReady, translationMode]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -161,7 +167,8 @@ export default function Home() {
         setSelectedLessonId(checkpoint.selectedLessonId);
         setReviewWordIds(checkpoint.reviewWordIds);
         setSession(checkpoint.session);
-        setMessage("已恢复上次练习");
+        const restoredLocale = localeFromPath(window.location.pathname) ?? readLearningPreferences(resilientBrowserStorage).uiLocale;
+        setMessage(translateMessage(restoredLocale, "practice.restored"));
         setStarted(true);
       }
       setCheckpointReady(true);
@@ -383,7 +390,7 @@ export default function Home() {
       submittingRef.current = true;
       setSubmitting(true);
       setShowPracticeHelp(false);
-      setMessage("정답이에요! 拼写正确");
+      setMessage(t("practice.correct"));
       window.setTimeout(() => {
         setSession((current) => submitLessonAnswer(current, word.id, true));
         setAnswer("");
@@ -406,10 +413,10 @@ export default function Home() {
       setSession((current) => submitLessonAnswer(current, word.id, false));
       const nextErrorCount = session.currentErrorCount + 1;
       setMessage(session.phase !== "copy" && nextErrorCount >= SPELLING_REVEAL_ERROR_LIMIT
-        ? `已显示答案（${SPELLING_REVEAL_ERROR_LIMIT}/${SPELLING_REVEAL_ERROR_LIMIT}），请重新输入正确拼写`
+        ? t("practice.answerShown", { limit: SPELLING_REVEAL_ERROR_LIMIT })
         : session.phase !== "copy"
-          ? `这次拼写不正确（${nextErrorCount}/${SPELLING_REVEAL_ERROR_LIMIT}）。红色是错误部分，可再听一次或点“不会写？”`
-          : "红色部分不正确，请按删除键后重新输入");
+          ? t("practice.wrongListen", { count: nextErrorCount, limit: SPELLING_REVEAL_ERROR_LIMIT })
+          : t("practice.wrongCopy"));
       if (!muted) {
         void playKorean(word.id, word.korean).then((played) => {
           if (!played) setSpeechUnavailable(true);
@@ -454,8 +461,8 @@ export default function Home() {
     setManualReveal(true);
     closePracticeHelp();
     setMessage(session.phase === "copy"
-      ? "请照着韩文答案重新拼写；这是韩文拼写，不是罗马音"
-      : "已显示韩文答案，本词会按错词记录；请照着答案重新拼写");
+      ? t("practice.revealCopy")
+      : t("practice.revealListen"));
     if (session.phase === "copy") return;
 
     const isNewLessonMistake = practiceMode === "lesson" && !session.mistakeIds.includes(word.id);
@@ -481,7 +488,7 @@ export default function Home() {
     link.download = `cubekorean-backup-${new Date().toISOString().slice(0, 10)}.json`;
     link.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 0);
-    setBackupMessage("备份已下载，请妥善保存文件。");
+    setBackupMessage(t("practice.backupDownloaded"));
     setResetArmed(false);
   }
 
@@ -493,7 +500,7 @@ export default function Home() {
       restoreLearningBackup(resilientBrowserStorage, CHAPTERS, await file.text());
       window.location.reload();
     } catch {
-      setBackupMessage("无法恢复：请选择由当前版本 CubeKorean 导出的有效备份。");
+      setBackupMessage(t("practice.backupInvalid"));
       setResetArmed(false);
     }
   }
@@ -501,7 +508,7 @@ export default function Home() {
   function resetLearningData() {
     if (!resetArmed) {
       setResetArmed(true);
-      setBackupMessage("此操作会清空本机进度和错词。请再次点击确认。");
+      setBackupMessage(t("practice.resetWarning"));
       return;
     }
     clearAllLearningData(resilientBrowserStorage);
@@ -570,6 +577,7 @@ export default function Home() {
         selectedLessonId={selectedLessonId}
         progress={progress}
         checkpointReady={checkpointReady}
+        preferencesReady={preferencesReady}
         todayWords={activitySummary.today.words}
         onSelectChapter={selectChapter}
         onSelectLesson={setSelectedLessonId}

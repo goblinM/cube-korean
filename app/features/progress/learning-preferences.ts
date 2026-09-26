@@ -1,9 +1,12 @@
+import type { UiLocale } from "../../i18n/types";
+
 export const LEARNING_PREFERENCES_STORAGE_KEY = "cubekorean.preferences.v1";
 
 export type TranslationMode = "ko-zh-en" | "ko-zh" | "ko-en";
 
 export type LearningPreferences = {
   version: 1;
+  uiLocale: UiLocale;
   translationMode: TranslationMode;
   nativeKeyboard: boolean;
   muted: boolean;
@@ -13,6 +16,7 @@ export type LearningPreferences = {
 
 export const DEFAULT_LEARNING_PREFERENCES: LearningPreferences = {
   version: 1,
+  uiLocale: "zh-CN",
   translationMode: "ko-zh-en",
   nativeKeyboard: true,
   muted: false,
@@ -32,6 +36,7 @@ export function normalizeLearningPreferences(value: unknown): LearningPreference
     : parsed.translationMode;
   if (
     parsed.version !== 1
+    || (parsed.uiLocale !== undefined && parsed.uiLocale !== "zh-CN" && parsed.uiLocale !== "en")
     || (mode !== "ko-zh-en" && mode !== "ko-zh" && mode !== "ko-en")
     || typeof parsed.nativeKeyboard !== "boolean"
     || typeof parsed.muted !== "boolean"
@@ -40,6 +45,7 @@ export function normalizeLearningPreferences(value: unknown): LearningPreference
   ) return null;
   return {
     version: 1,
+    uiLocale: parsed.uiLocale === "en" ? "en" : "zh-CN",
     translationMode: mode,
     nativeKeyboard: parsed.nativeKeyboard,
     muted: parsed.muted,
@@ -61,7 +67,7 @@ export function readLearningPreferences(storage: StorageReader, defaultNativeKey
   }
 }
 
-/** 保存释义、输入键盘、自动发音、按键音和页面键盘自动确认偏好。 */
+/** 保存界面语言、释义、输入键盘、自动发音、按键音和页面键盘自动确认偏好。 */
 export function writeLearningPreferences(storage: StorageWriter, preferences: Omit<LearningPreferences, "version">): void {
   storage.setItem(LEARNING_PREFERENCES_STORAGE_KEY, JSON.stringify({ version: 1, ...preferences } satisfies LearningPreferences));
 }
