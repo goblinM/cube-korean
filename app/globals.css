@@ -136,7 +136,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline:3px so
 .practice-switch { width:min(100%,240px); flex-shrink:0; }
 .practice-switch button { flex:1; min-height:30px; padding:5px 12px; border-radius:8px; font-size:12px; font-weight:600; color:#72756c; }
 .typing-setup { display:flex; flex-direction:column; align-items:center; padding:0 0 10px; align-self:stretch; margin:auto; }
-.typing-setup h2 { font-size:23px; margin:10px 0 0; }
+.typing-setup h2, .level-meta h2 { font-size:23px; font-weight:500; line-height:1.35; letter-spacing:0; margin:10px 0 2px; }
 .typing-setup fieldset { margin:18px 0 12px; width:100%; }
 .custom-count { min-height:34px; }
 .typing-cube { margin-top:8px; }
@@ -152,7 +152,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline:3px so
 .typing-results { background:radial-gradient(circle at 50% 30%,#fff, var(--paper)); }
 .typing-results .emoji-card { background:var(--lime); }
 @media (max-width:760px) {
-  .typing-setup h2 { font-size:20px; }
+  .typing-setup h2, .level-meta h2 { font-size:20px; }
   .typing-setup fieldset { margin:12px 0 8px; }
   .typing-setup legend { margin-bottom:8px; }
   .typing-cube { margin-top:0; }
@@ -183,4 +183,35 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline:3px so
   .brand-row .brand { font-size:18px; gap:6px; white-space:nowrap; }
   .brand-row .brand>span { width:30px; height:30px; flex-shrink:0; }
   .practice-switch button { min-height:32px; }
+}
+
+/* Course selection uses the same compact scale as typing setup. */
+.chapter-switcher { width:min(100%,480px); grid-template-columns:32px minmax(0,1fr) 156px 32px; gap:6px; padding:7px; border-radius:13px; box-shadow:0 3px 12px #39372806; }
+.chapter-current { gap:8px; }
+.chapter-current>span { width:30px; height:30px; flex-basis:30px; border-radius:9px; font-size:17px; }
+.chapter-current strong { font-size:13px; font-weight:600; }
+.chapter-current small, .chapter-current em { font-size:10px; }
+.chapter-arrow { width:32px; height:32px; font-size:16px; border-radius:9px; }
+.chapter-switcher select { height:32px; padding:0 7px; font-size:12px; font-weight:500; }
+.level-meta>span { font-size:11px; font-weight:600; letter-spacing:0; }
+.level-meta p { font-size:13px; line-height:1.5; }
+.stage-row { width:min(100%,480px); margin:18px 0 20px; padding:0 0 7px; scrollbar-color:#d9d7ce transparent; }
+.stage { flex-basis:60px; width:60px; gap:5px; }
+.stage span { width:36px; height:36px; border-width:4px; font-size:13px; }
+.stage small { max-width:56px; font-size:11px; line-height:1.3; }
+.stage-row:before { top:17px; left:30px; width:540px; }
+@media (max-width:760px) {
+  .chapter-switcher { grid-template-columns:30px minmax(0,1fr) 108px 30px; gap:4px; padding:5px; }
+  .chapter-current { gap:5px; }
+  .chapter-current>span { width:26px; height:26px; flex-basis:26px; font-size:15px; }
+  .chapter-current strong { font-size:12px; }
+  .chapter-current small, .chapter-current em { font-size:9px; }
+  .chapter-switcher select { width:108px; padding:0 4px; font-size:10px; }
+  .chapter-arrow { width:30px; height:32px; }
+  .level-meta p { font-size:11px; }
+  .stage-row { width:100%; margin:12px 0 14px; }
+  .stage { flex-basis:52px; width:52px; }
+  .stage span { width:34px; height:34px; }
+  .stage small { max-width:48px; font-size:10px; }
+  .stage-row:before { top:16px; left:26px; width:468px; }
 }
