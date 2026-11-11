@@ -2,13 +2,7 @@ import type { RefObject } from "react";
 import type { TranslationMode } from "../../features/progress/learning-preferences";
 import { useI18n } from "../../i18n/i18n-context";
 
-const KEYS = [
-  ["ㅂ", "ㅈ", "ㄷ", "ㄱ", "ㅅ", "ㅛ", "ㅕ", "ㅑ", "ㅐ", "ㅔ"],
-  ["ㅁ", "ㄴ", "ㅇ", "ㄹ", "ㅎ", "ㅗ", "ㅓ", "ㅏ", "ㅣ"],
-  ["ㅋ", "ㅌ", "ㅊ", "ㅍ", "ㅠ", "ㅜ", "ㅡ"],
-];
-const PHYSICAL_KEY_ROWS = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
-const SHIFTED_PHYSICAL_KEYS: Record<string, string> = { Q: "ㅃ", W: "ㅉ", E: "ㄸ", R: "ㄲ", T: "ㅆ", O: "ㅒ", P: "ㅖ" };
+import { KEYS, PHYSICAL_KEY_ROWS, SHIFTED_PHYSICAL_KEYS, JamoKeys } from "./jamo-keys";
 
 type HangulKeyboardProps = {
   nativeKeyboard: boolean;
@@ -42,7 +36,7 @@ export function HangulKeyboard({ nativeKeyboard, autoConfirm, keySound, muted, s
         {!nativeKeyboard && <button aria-pressed={autoConfirm} onClick={onToggleAutoConfirm}>✓ {autoConfirm ? t("keyboard.autoConfirm") : t("keyboard.manualConfirm")}</button>}
         <button onClick={onResetAnswer}>↻ {t("keyboard.restart")}</button>
       </div>
-      {!nativeKeyboard && <div className="keyboard">{KEYS.map((row, rowIndex) => <div className="key-row" key={rowIndex}>{row.map((key) => <button disabled={submitting} key={key} onClick={() => onTypeKey(key)}>{key}</button>)}{rowIndex === 2 && <button disabled={submitting} className="delete" onClick={onDeleteKey} aria-label={t("keyboard.delete")}>⌫</button>}</div>)}</div>}
+      {!nativeKeyboard && <JamoKeys disabled={submitting} onKey={onTypeKey} onDelete={onDeleteKey} deleteLabel={t("keyboard.delete")} />}
       {nativeKeyboard && <div className="physical-keyboard-guide" role="group" aria-label={t("keyboard.physicalGuide")}>
         <div className="physical-keyboard-heading"><strong>{t("keyboard.physicalTitle")}</strong><span>{t("keyboard.twoSet")}</span></div>
         <div className="physical-keyboard-rows">{KEYS.map((row, rowIndex) => <div className="physical-key-row" key={rowIndex}>{row.map((hangul, keyIndex) => {

@@ -23,6 +23,8 @@ import {
   type CourseProgress,
 } from "./local-progress.ts";
 
+import { TYPING_KEY, isTypingProgress, readTypingProgress, type TypingProgress } from "./typing-progress.ts";
+
 export type LearningBackup = {
   version: 1;
   exportedAt: string;
@@ -31,6 +33,7 @@ export type LearningBackup = {
   location: LearningLocation | null;
   activity?: LearningActivity;
   dailyGoal?: number;
+  typing?: TypingProgress;
 };
 
 type BackupStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
@@ -45,6 +48,7 @@ export function createLearningBackup(storage: BackupStorage, chapters: Chapter[]
     location: readLearningLocation(storage, chapters),
     activity: readLearningActivity(storage),
     dailyGoal: readDailyGoal(storage),
+    typing: readTypingProgress(storage),
   };
   return JSON.stringify(backup, null, 2);
 }
@@ -66,6 +70,7 @@ export function restoreLearningBackup(storage: BackupStorage, chapters: Chapter[
   }
   if (parsed.activity !== undefined && !isLearningActivity(parsed.activity)) throw new Error("备份中的学习历史无效");
   if (parsed.dailyGoal !== undefined && (!Number.isInteger(parsed.dailyGoal) || parsed.dailyGoal < 1 || parsed.dailyGoal > 5)) throw new Error("备份中的每日目标无效");
+  if (parsed.typing !== undefined && !isTypingProgress(parsed.typing)) throw new Error("备份中的打字练习记录无效");
   if (parsed.location) {
     const reader = { getItem: (key: string) => key === LEARNING_LOCATION_STORAGE_KEY ? JSON.stringify(parsed.location) : null };
     if (!readLearningLocation(reader, chapters)) throw new Error("备份中的课程位置已经失效");
@@ -82,6 +87,8 @@ export function restoreLearningBackup(storage: BackupStorage, chapters: Chapter[
   if (backup.activity) storage.setItem(LEARNING_ACTIVITY_STORAGE_KEY, JSON.stringify(backup.activity));
   else storage.removeItem(LEARNING_ACTIVITY_STORAGE_KEY);
   storage.setItem(DAILY_GOAL_STORAGE_KEY, String(backup.dailyGoal ?? 1));
+  if (backup.typing) storage.setItem(TYPING_KEY, JSON.stringify(backup.typing));
+  else storage.removeItem(TYPING_KEY);
   storage.removeItem(LEARNING_CHECKPOINT_STORAGE_KEY);
   return backup;
 }
@@ -92,7 +99,7 @@ function isValidExportDate(value: unknown): value is string {
 
 /** 清除当前设备上的进度、偏好、位置和未完成会话。 */
 export function clearAllLearningData(storage: BackupStorage): void {
-  for (const key of [PROGRESS_STORAGE_KEY, LEARNING_PREFERENCES_STORAGE_KEY, LEARNING_LOCATION_STORAGE_KEY, LEARNING_CHECKPOINT_STORAGE_KEY, LEARNING_ACTIVITY_STORAGE_KEY, DAILY_GOAL_STORAGE_KEY, COFFEE_TIP_STORAGE_KEY]) {
+  for (const key of [PROGRESS_STORAGE_KEY, LEARNING_PREFERENCES_STORAGE_KEY, LEARNING_LOCATION_STORAGE_KEY, LEARNING_CHECKPOINT_STORAGE_KEY, LEARNING_ACTIVITY_STORAGE_KEY, DAILY_GOAL_STORAGE_KEY, COFFEE_TIP_STORAGE_KEY, TYPING_KEY]) {
     storage.removeItem(key);
   }
 }
