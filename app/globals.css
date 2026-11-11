@@ -97,3 +97,90 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline:3px so
   .data-stats { grid-template-columns:repeat(2,1fr); }.data-stats div { display:block; }.chapter-progress-list { grid-template-columns:1fr; }.insight-card { padding:17px; }
   .weekly-chart { height:112px; gap:5px; }.weekly-card .section-heading { align-items:flex-end; }
 }
+
+.practice-switch, .typing-options { display:flex; align-items:center; justify-content:center; gap:4px; }
+.practice-switch { padding:3px; margin-bottom:12px; background:#eeede7; border:1px solid #e4e2da; border-radius:11px; }
+.practice-switch button, .typing-options button { padding:9px 16px; border:0; border-radius:10px; background:transparent; color:var(--ink); font:inherit; font-size:14px; font-weight:700; cursor:pointer; }
+.practice-switch button[aria-pressed=true] { background:white; color:var(--ink); box-shadow:0 1px 3px #28271d14; }
+.typing-setup { width:min(100%,410px); padding:clamp(20px,5vh,52px) 0; }
+.typing-setup h2 { font-size:clamp(20px,3vw,30px); }
+.typing-setup fieldset { margin:28px 0; padding:0; border:0; }
+.typing-setup legend { margin:0 auto 12px; color:var(--muted); font-size:14px; }
+.typing-options button { background:white; border:1px solid #dcdad0; }
+.typing-options button[aria-pressed=true], .typing-page .key-row button[data-next], .typing-page .utility-row button[aria-pressed=true] { background:var(--lime); color:var(--ink); border-color:var(--ink); }
+.custom-count { display:flex; align-items:center; justify-content:center; margin-top:12px; gap:10px; font-size:13px; }
+.custom-count input { width:65px; padding:6px; border:1px solid #deddd5; border-radius:8px; background:white; text-align:center; }
+.typing-page { min-height:100svh; display:flex; flex-direction:column; background:var(--paper); }
+.typing-page .practice-header { flex-shrink:0; }
+.typing-page .practice-header strong { white-space:nowrap; font-size:13px; }
+.typing-stage { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; text-align:center; padding:16px; }
+.typing-stage h1 { margin:0; font-size:clamp(30px,7vw,66px); overflow-wrap:anywhere; }
+.typing-stage p { margin:0; color:var(--muted); }
+.typing-stage input { width:min(100%,360px); padding:8px; background:white; border:1px solid #aaa99e; border-radius:12px; text-align:center; color:var(--ink); font:inherit; font-size:26px; }
+.typing-stage input[aria-invalid=true] { border:2px solid var(--red); }
+.typing-stage small { min-height:20px; }
+.typing-stage .result-link { margin-top:10px; }
+.typing-page .key-row button small { display:block; font-size:9px; font-weight:500; }
+@media (max-width:760px) {
+  .hero-copy .eyebrow { display:none; }
+  .practice-switch { margin:3px 0; }
+  .practice-switch button { padding:7px 14px; }
+  .typing-page .keyboard-area { padding-bottom:max(12px,env(safe-area-inset-bottom)); }
+}
+
+/* Both modes reserve the same space, keeping the switch stable while content changes. */
+.hero-copy-stack, .mode-panels { display:grid; min-width:0; width:100%; }
+.hero-copy-stack>.hero-copy, .mode-panel { grid-area:1 / 1; }
+.hero-copy-stack>[data-active=false], .mode-panel[data-active=false] { visibility:hidden; opacity:0; pointer-events:none; }
+.mode-panel { min-width:0; display:flex; flex-direction:column; align-items:center; }
+.practice-switch { width:min(100%,240px); flex-shrink:0; }
+.practice-switch button { flex:1; min-height:30px; padding:5px 12px; border-radius:8px; font-size:12px; font-weight:600; color:#72756c; }
+.typing-setup { display:flex; flex-direction:column; align-items:center; padding:0 0 10px; align-self:stretch; margin:auto; }
+.typing-setup h2 { font-size:23px; margin:10px 0 0; }
+.typing-setup fieldset { margin:18px 0 12px; width:100%; }
+.custom-count { min-height:34px; }
+.typing-cube { margin-top:8px; }
+.typing-page { background:#fff; }
+.typing-stage { gap:12px; padding:24px 16px; min-height:340px; }
+.typing-stage h1 { font-size:clamp(30px,5vw,57px); line-height:1.2; margin-top:8px; }
+.typing-stage .translation { margin:0; max-width:90%; }
+.typing-stage .translation span { color:#74776f; }
+.typing-stage input { margin-top:14px; min-height:54px; border:1px solid #deddd5; background:var(--paper); font-size:24px; border-radius:14px; outline-offset:4px; }
+.typing-stage input:focus { outline:2px solid #aecb5a; }
+.typing-stage input::placeholder { font-size:14px; color:#8b8e86; }
+.typing-stage .feedback { margin:0; }
+.typing-results { background:radial-gradient(circle at 50% 30%,#fff, var(--paper)); }
+.typing-results .emoji-card { background:var(--lime); }
+@media (max-width:760px) {
+  .typing-setup h2 { font-size:20px; }
+  .typing-setup fieldset { margin:12px 0 8px; }
+  .typing-setup legend { margin-bottom:8px; }
+  .typing-cube { margin-top:0; }
+  .typing-stage { min-height:280px; gap:10px; padding:16px; }
+  .typing-stage h1 { font-size:clamp(28px,9vw,46px); }
+  .typing-stage input { margin-top:8px; min-height:48px; }
+}
+
+/* Compact secondary controls keep the practice content visually prominent. */
+.brand-row .header-actions { gap:8px; flex-shrink:0; }
+.brand-row .language-selector { min-height:32px; padding:0 8px; gap:4px; border-color:#e7e4dc; background:#ffffff80; }
+.brand-row .language-selector>span[aria-hidden="true"] { font-size:12px; }
+.brand-row .language-selector select { font-size:11px; font-weight:500; }
+.brand-row .mistake-link { display:inline-flex; align-items:center; white-space:nowrap; min-height:32px; padding:4px 9px; font-size:11px; font-weight:600; border-color:#e7e4dc; background:#ffffff80; }
+.brand-row .mistake-link b { min-width:17px; height:17px; padding:0 4px; margin-left:5px; font-size:10px; }
+.brand-row .daily-status { padding:0 4px; gap:6px; border:0; background:transparent; }
+.brand-row .daily-status strong { font-size:13px; }
+.brand-row .settings-button { flex:0 0 32px; width:32px; height:32px; border-color:#e1ded4; background:#ffffff80; color:#62665b; }
+.brand-row .settings-button svg { width:17px; height:17px; }
+.brand-row .settings-button:hover { background:#f0f6dc; }
+@media (max-width:760px) {
+  .brand-row .header-actions { gap:4px; }
+  .brand-row .language-selector, .brand-row .mistake-link { min-height:36px; }
+  .brand-row .settings-button { flex-basis:36px; width:36px; height:36px; }
+  .brand-row .language-selector { padding:0 5px; }
+  .brand-row .language-selector select { max-width:70px; font-size:10px; }
+  .brand-row .mistake-link { padding:4px 6px; font-size:10px; }
+  .brand-row .brand { font-size:18px; gap:6px; white-space:nowrap; }
+  .brand-row .brand>span { width:30px; height:30px; flex-shrink:0; }
+  .practice-switch button { min-height:32px; }
+}

@@ -1,3 +1,9 @@
+import { useCallback, useEffect, useState } from "react";
+import { TypingPractice } from "./practice/typing-practice";
+import { TypingSetup } from "./practice/typing-setup";
+import { defaultTyping, readTypingProgress, TYPING_KEY, type TypingProgress } from "../features/progress/typing-progress";
+import { resilientBrowserStorage } from "../features/progress/resilient-storage";
+import { drawRound } from "../features/typing/round";
 import { CHAPTERS } from "../data/lessons/course";
 import type { CourseProgress } from "../features/progress/local-progress";
 import { isLessonUnlocked, isReviewDue } from "../features/progress/local-progress";
@@ -51,6 +57,28 @@ export function CourseMapPage({
   const chapterIndex = CHAPTERS.findIndex((candidate) => candidate.id === chapter.id);
   const lesson = chapter.lessons.find((candidate) => candidate.id === selectedLessonId) ?? chapter.lessons[0];
 
+  const [typing, setTyping] = useState(defaultTyping);
+  const [modeReady, setModeReady] = useState(false);
+  const [roundWords, setRoundWords] = useState<string[] | null>(null);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setTyping(readTypingProgress(resilientBrowserStorage));
+      setModeReady(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const updateTyping = useCallback((patch: Partial<TypingProgress>) => {
+    const next = { ...readTypingProgress(resilientBrowserStorage), ...patch };
+    resilientBrowserStorage.setItem(TYPING_KEY, JSON.stringify(next));
+    setTyping(next);
+  }, []);
+  const recordWord = useCallback(() => {
+    updateTyping({ words: readTypingProgress(resilientBrowserStorage).words + 1 });
+  }, [updateTyping]);
+  if (roundWords) return <TypingPractice initialWords={roundWords} total={typing.words} hints={typing.hints}
+    onToggleHints={() => updateTyping({ hints: !typing.hints })} onWord={recordWord} onExit={() => setRoundWords(null)} />;
+
   return (
     <main className="map-page">
       <header className="brand-row">
@@ -64,14 +92,27 @@ export function CourseMapPage({
       </header>
 
       <section className="hero">
-        <div className="hero-copy">
-          <div className="eyebrow">TODAY&apos;S KOREAN</div>
-          <h1>{t("home.heroTitle").split("\n").map((line, index) => <span key={line}>{index > 0 && <br />}{line}</span>)}</h1>
-          <p>{t("home.heroLead")}</p>
-          <p>{t("home.heroBody")}</p>
+        <div className="hero-copy-stack">
+          {(["course", "typing"] as const).map(mode => (
+            <div className="hero-copy" key={mode} aria-hidden={typing.mode !== mode} data-active={typing.mode === mode}>
+              <div className="eyebrow">TODAY&apos;S KOREAN</div>
+              <h1>{t(mode === "typing" ? "typing.hero" : "home.heroTitle").split("\n").map((line, index) => <span key={line}>{index > 0 && <br />}{line}</span>)}</h1>
+              <p>{t(mode === "typing" ? "typing.caption" : "home.heroLead")}</p>
+              {mode === "course" && <p>{t("home.heroBody")}</p>}
+            </div>
+          ))}
         </div>
 
         <div className="lesson-map">
+          <div className="practice-switch" role="group" aria-label={t("typing.choose")}>
+            {(["course", "typing"] as const).map(mode => <button key={mode} disabled={!modeReady || !checkpointReady}
+              aria-pressed={typing.mode === mode} onClick={() => updateTyping({ mode })}>{t(mode === "course" ? "typing.course" : "typing.mode")}</button>)}
+          </div>
+          <div className="mode-panels">
+          <div className="mode-panel" data-active={typing.mode === "typing"} inert={typing.mode !== "typing"} aria-hidden={typing.mode !== "typing"}>
+          {modeReady && <TypingSetup size={typing.size} onSize={size => updateTyping({ size })} onStart={size => setRoundWords(drawRound(size))} />}
+          </div>
+          <div className="mode-panel" data-active={typing.mode === "course"} inert={typing.mode !== "course"} aria-hidden={typing.mode !== "course"}>
           <div className="chapter-switcher" aria-label={t("home.selectChapter")}>
             <button className="chapter-arrow" disabled={!checkpointReady || chapterIndex <= 0} onClick={() => onSelectChapter(CHAPTERS[chapterIndex - 1].id)} aria-label={t("home.previousChapter")}>←</button>
             <div className="chapter-current"><span>{LESSON_ICONS[chapter.id]?.[0] ?? "✦"}</span><div><small>{t("home.topic")} {chapterIndex + 1} / {CHAPTERS.length}</small><strong>{chapterTitle(chapter, locale)}</strong><em>{chapter.titleKorean}</em></div></div>
@@ -101,6 +142,8 @@ export function CourseMapPage({
             })}
           </div>
           <button className="primary" disabled={!checkpointReady} onClick={onStartLesson}>{progress.lessons[lesson.id] ? t("home.practiceAgain") : t("home.start")} <span>→</span></button>
+          </div>
+          </div>
         </div>
       </section>
     </main>
